@@ -1,0 +1,2405 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hectre Fruit Pricing Calculator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* --- Modern Theme with Pastel Green Accents --- */
+    :root {
+      --primary-color: #2c3e50;      /* Dark Blue Text */
+      --secondary-color: #7f8c8d;    /* Medium Grey Text */
+      --light-color: #f9fafb;        /* Light Grey Background */
+      --white-color: #FFFFFF;        /* White Backgrounds */
+      --pastel-green: #c8e6c9;       /* Pastel Green for Accents */
+      --pastel-green-dark: #a5d6a7;  /* Darker Pastel Green for Hover */
+      --pastel-green-light: #e8f5e9; /* Lighter Pastel Green Background */
+      --pastel-blue: #bbdefb;        /* Pastel Blue for Alternating Sections */
+      --pastel-blue-light: #e3f2fd;  /* Lighter Blue for Backgrounds */
+      --accent-color: #4CAF50;       /* Green for Selected, Active Items */
+      --blue-accent: #3498db;        /* Blue Accent for Headings */
+      --border-color: #e2e8f0;       /* Light Border Color */
+      --success-color: #27ae60;      /* Green for Savings */
+      --warning-color: #f39c12;      /* Amber for Warnings */
+      --danger-color: #e74c3c;       /* Red for Errors/Removal */
+            /* New color variables for positive and negative numbers */
+      --negative-number-color: #27ae60;  /* Green for negative numbers (discounts) */
+      --positive-number-color: #888888;  /* Grey for positive numbers (add-ons) */
+      --font-primary: 'Montserrat', sans-serif; /* Modern Primary Font */
+      --font-secondary: 'Poppins', sans-serif;  /* Secondary Font */
+      --border-radius: 8px;          /* Rounded Corners */
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+      --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+      --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+      --transition: all 0.3s ease;
+    }
+
+    /* Base Styles */
+    html, body { 
+      height: 100%; 
+      margin: 0; 
+      font-family: var(--font-secondary); 
+      background-color: var(--light-color); 
+      color: var(--primary-color); 
+      font-size: 16px; 
+      line-height: 1.6;
+    }
+    
+    body { 
+      display: flex; 
+      flex-direction: column; 
+      min-height: 100vh; 
+    }
+    
+    .container { 
+      width: 100%; 
+      max-width: 1200px; 
+      margin: 0 auto; 
+      padding: 30px 20px; 
+      flex-grow: 1; 
+    }
+    
+    /* Header & Branding */
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    
+    .logo {
+      max-width: 180px;
+      margin-bottom: 15px;
+    }
+    
+    h1 { 
+      font-family: var(--font-primary);
+      color: var(--primary-color); 
+      font-size: 2.2rem; 
+      font-weight: 700; 
+      margin: 0 0 10px 0;
+      position: relative;
+      display: inline-block;
+    }
+    
+    h1:after {
+      content: '';
+      display: block;
+      width: 70px;
+      height: 4px;
+      background: var(--pastel-green-dark);
+      margin: 15px auto 0;
+      border-radius: 2px;
+    }
+    
+    .header-subtitle {
+      font-family: var(--font-secondary);
+      font-size: 1.1rem;
+      color: var(--secondary-color);
+      font-weight: 400;
+      margin: 15px 0 0 0;
+    }
+    
+    /* Card Styling */
+    .card { 
+      background-color: var(--white-color); 
+      border-radius: var(--border-radius); 
+      box-shadow: var(--shadow-md);
+      margin-bottom: 30px;
+      border: 1px solid var(--border-color);
+      overflow: hidden;
+      transition: var(--transition);
+    }
+    
+    .card:hover {
+      box-shadow: var(--shadow-lg);
+      transform: translateY(-2px);
+    }
+    
+    .card-header {
+      padding: 20px 25px;
+      border-bottom: 1px solid var(--border-color);
+      background-color: var(--pastel-green-light);
+      display: flex;
+      align-items: center;
+    }
+    
+    .card-icon {
+      width: 30px;
+      height: 30px;
+      margin-right: 12px;
+      opacity: 0.7;
+    }
+    
+    .card-body {
+      padding: 25px;
+    }
+    
+    /* Section Headers */
+    .section-title { 
+      font-family: var(--font-primary);
+      font-size: 1.3rem; 
+      font-weight: 600; 
+      color: var(--primary-color); 
+      margin: 0;
+      display: flex;
+      align-items: center;
+    }
+    
+    /* Form Elements */
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    label { 
+      display: block; 
+      margin-bottom: 8px; 
+      font-weight: 500; 
+      color: var(--primary-color);
+      font-size: 0.95rem;
+    }
+    
+    select, input[type="text"], input[type="number"] { 
+      width: 100%; 
+      padding: 12px 15px; 
+      border: 1px solid var(--border-color); 
+      border-radius: var(--border-radius); 
+      background-color: var(--white-color);
+      font-family: var(--font-secondary);
+      font-size: 0.95rem;
+      color: var(--primary-color);
+      transition: var(--transition);
+    }
+    
+    select:focus, input:focus { 
+      outline: none;
+      border-color: var(--pastel-green-dark);
+      box-shadow: 0 0 0 3px rgba(197, 230, 201, 0.5);
+    }
+    
+    select { 
+      appearance: none; 
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%232c3e50' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpath d='M6 9l6 6 6-6'/%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 15px center;
+      background-size: 16px;
+      padding-right: 40px;
+    }
+    
+    /* Buttons */
+    button { 
+      padding: 12px 20px; 
+      border-radius: var(--border-radius); 
+      cursor: pointer; 
+      font-weight: 600; 
+      font-size: 1em;
+      font-family: var(--font-primary);
+      border: none;
+      transition: var(--transition);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    button.primary { 
+      background-color: var(--accent-color); 
+      color: white;
+      box-shadow: 0 2px 5px rgba(76, 175, 80, 0.3);
+    }
+    
+    button.primary:hover { 
+      background-color: #43a047;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(76, 175, 80, 0.4);
+    }
+    
+    button.primary:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 3px rgba(76, 175, 80, 0.3);
+    }
+    
+    button.secondary { 
+      background-color: var(--secondary-color); 
+      color: white;
+    }
+    
+    button.secondary:hover { 
+      background-color: #6c7a89;
+    }
+    
+    button.outline {
+      background-color: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--primary-color);
+    }
+    
+    button.outline:hover {
+      background-color: var(--light-color);
+      border-color: var(--primary-color);
+    }
+    
+    button svg {
+      margin-right: 8px;
+    }
+    
+    button:disabled {
+      background-color: #cccccc;
+      color: #666666;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+    
+    /* Checkboxes */
+    input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      margin-right: 10px;
+      vertical-align: middle;
+      accent-color: var(--accent-color);
+    }
+    
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+      font-weight: normal;
+      cursor: pointer;
+    }
+    
+    .checkbox-label:hover {
+      color: var(--accent-color);
+    }
+    
+    /* Layout */
+    .grid-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+    }
+    
+    /* Package Selection */
+    .package-card {
+      padding: 20px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      margin-bottom: 20px;
+      transition: var(--transition);
+      position: relative;
+      background-color: var(--white-color);
+    }
+    
+    .package-card:hover {
+      border-color: var(--pastel-green-dark);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .package-card.selected {
+      background-color: var(--pastel-green-light);
+      border-color: var(--pastel-green-dark);
+      box-shadow: 0 0 0 3px rgba(165, 214, 167, 0.3);
+    }
+    
+    .package-card h3 {
+      font-size: 1.2em;
+      margin-top: 0;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: var(--primary-color);
+    }
+    
+    .package-card p {
+      color: var(--secondary-color);
+      margin-top: 0;
+      margin-bottom: 15px;
+      font-size: 0.95rem;
+    }
+    
+    .package-card .price {
+      font-weight: 600;
+      color: var(--accent-color);
+      margin-top: 12px;
+      font-size: 1.1rem;
+    }
+    
+    .selected-indicator {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      color: var(--accent-color);
+      font-size: 1.2rem;
+    }
+    
+    .tonnage-input {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .tonnage-input input {
+      flex: 0 0 120px;
+    }
+    
+    .tonnage-input span {
+      color: var(--secondary-color);
+      font-size: 0.9rem;
+    }
+    
+    /* Results Styling */
+    .result-section {
+      display: none; /* Hidden by default, shown after calculation */
+      background-color: var(--white-color);
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow-md);
+      overflow: hidden;
+      transition: var(--transition);
+      animation: fadeIn 0.5s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .result-header {
+      background: linear-gradient(45deg, var(--pastel-green), var(--pastel-green-light));
+      padding: 20px 25px;
+      border-bottom: 1px solid var(--pastel-green-dark);
+    }
+    
+    .result-title {
+      color: var(--primary-color);
+      font-size: 1.5em;
+      font-weight: 600;
+      margin: 0;
+      display: flex;
+      align-items: center;
+    }
+    
+    .result-title svg {
+      margin-right: 10px;
+    }
+    
+    .result-content {
+      padding: 25px;
+    }
+    
+    .result-section-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 0 0 15px 0;
+      color: var(--primary-color);
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .result-row:last-child {
+      border-bottom: none;
+    }
+    
+    .result-label {
+      font-weight: 500;
+      color: var(--primary-color);
+    }
+    
+    .result-value {
+      font-weight: 600;
+      color: var(--secondary-color);
+    }
+    
+    /* Updated color classes for discount and addon values */
+    .discount-value {
+      color: var(--negative-number-color);  /* Changed from red to green */
+    }
+    
+    .addon-value {
+      color: var(--positive-number-color);  /* Changed from orange to grey */
+    }
+    
+    .final-price {
+      background-color: var(--pastel-green-light);
+      padding: 20px;
+      border-radius: var(--border-radius);
+      margin-top: 25px;
+      border: 1px solid var(--pastel-green);
+    }
+    
+    .final-price .result-value {
+      color: var(--accent-color);
+      font-size: 1.3em;
+    }
+    
+    /* Savings Callout */
+    .savings-callout {
+      background-color: var(--pastel-blue-light);
+      border: 1px solid var(--pastel-blue);
+      border-radius: var(--border-radius);
+      padding: 15px;
+      margin-top: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .savings-badge {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      background-color: var(--success-color);
+      color: white;
+      padding: 5px 10px;
+      font-size: 0.75rem;
+      border-radius: 0 0 0 8px;
+      transform: rotate(45deg) translate(10px, -5px);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    /* Action Buttons */
+    .actions-container {
+      display: flex;
+      gap: 15px;
+      margin-top: 25px;
+      justify-content: center;
+    }
+    
+    /* Loader and Visual Feedback */
+    .loader-container {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(255,255,255,0.8);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    
+    .loader {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .spinner {
+      border: 4px solid rgba(165, 214, 167, 0.3);
+      border-radius: 50%;
+      border-top: 4px solid var(--accent-color);
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 15px;
+    }
+    
+    .loader-text {
+      color: var(--primary-color);
+      font-weight: 500;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* Tooltips */
+    .tooltip {
+      position: relative;
+      display: inline-block;
+      margin-left: 5px;
+      cursor: help;
+    }
+    
+    .tooltip-icon {
+      display: inline-flex;
+      width: 18px;
+      height: 18px;
+      background-color: var(--secondary-color);
+      color: white;
+      border-radius: 50%;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    
+    .tooltip-text {
+      visibility: hidden;
+      width: 200px;
+      background-color: var(--primary-color);
+      color: #fff;
+      text-align: center;
+      border-radius: 6px;
+      padding: 10px;
+      position: absolute;
+      z-index: 1;
+      bottom: 125%;
+      left: 50%;
+      margin-left: -100px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-size: 0.85rem;
+      font-weight: normal;
+      box-shadow: var(--shadow-md);
+    }
+    
+    .tooltip-text::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      margin-left: -5px;
+      border-width: 5px;
+      border-style: solid;
+      border-color: var(--primary-color) transparent transparent transparent;
+    }
+    
+    .tooltip:hover .tooltip-text {
+      visibility: visible;
+      opacity: 1;
+    }
+    
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+    
+    .badge-success {
+      background-color: var(--pastel-green-light);
+      color: var(--success-color);
+      border: 1px solid var(--pastel-green);
+    }
+    
+    .badge-warning {
+      background-color: #fef3c7;
+      color: var(--warning-color);
+      border: 1px solid #fde68a;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .grid-container {
+        grid-template-columns: 1fr;
+      }
+      
+      .container {
+        padding: 20px 15px;
+      }
+      
+      h1 {
+        font-size: 1.8rem;
+      }
+      
+      .actions-container {
+        flex-direction: column;
+      }
+      
+      .actions-container button {
+        width: 100%;
+      }
+    }
+    
+    /* Status Indicators */
+    .status-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+    
+    .status-active {
+      background-color: var(--success-color);
+      box-shadow: 0 0 0 2px rgba(39, 174, 96, 0.2);
+    }
+    
+    /* Feature Highlight */
+    .feature-list {
+      margin: 20px 0;
+      padding: 0;
+      list-style-type: none;
+    }
+    
+    .feature-item {
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    
+    .feature-icon {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      margin-right: 10px;
+      color: var(--accent-color);
+    }
+    
+    .feature-text {
+      font-size: 0.95rem;
+      margin: 0;
+    }
+    
+    /* Info Callout */
+    .info-callout {
+      background-color: var(--pastel-blue-light);
+      border-left: 4px solid var(--blue-accent);
+      padding: 15px;
+      margin: 15px 0;
+      font-size: 0.9rem;
+      border-radius: 0 var(--border-radius) var(--border-radius) 0;
+    }
+    
+    .info-callout p {
+      margin: 0;
+    }
+    
+    /* Visual Indicators for Discount */
+    .discount-display {
+      margin-left: 8px;
+      font-size: 0.85rem;
+      color: var(--accent-color);
+      font-weight: 500;
+    }
+
+    /* Fruit Selection Improvements */
+    .selected-fruits {
+      margin-top: 10px;
+      padding: 15px;
+      background-color: var(--light-color);
+      border-radius: var(--border-radius);
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid var(--border-color);
+    }
+    
+    .selected-fruit-item {
+      background-color: var(--white-color);
+      padding: 12px 15px;
+      margin-bottom: 15px;
+      border-radius: var(--border-radius);
+      border: 1px solid #e0e0e0;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+    
+    .fruit-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .fruit-item-header span {
+      font-weight: 600;
+      font-size: 1.1em;
+      color: var(--primary-color);
+    }
+    
+    .fruit-item-header button {
+      background-color: transparent;
+      color: var(--danger-color);
+      width: auto;
+      padding: 0 5px;
+      margin: 0;
+      font-weight: bold;
+      font-size: 1.2em;
+      border: none;
+      flex-shrink: 0;
+      opacity: 0.7;
+      transition: opacity 0.2s ease;
+    }
+    
+    .fruit-item-header button:hover {
+      opacity: 1;
+    }
+    
+    .product-tonnage-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      padding-left: 5px;
+    }
+    
+    .product-tonnage-row label {
+      margin: 0 15px 0 0;
+      font-weight: 400;
+      font-size: 1em;
+      color: var(--secondary-color);
+      flex-basis: 50%;
+      text-align: right;
+      flex-shrink: 0;
+    }
+    
+    .product-tonnage-input {
+      display: flex;
+      align-items: center;
+      flex-basis: 45%;
+      justify-content: flex-end;
+    }
+    
+    .product-tonnage-input input {
+      width: 90px !important;
+      padding: 8px 10px;
+      font-size: 1em;
+      margin: 0 5px 0 0;
+      text-align: right;
+      flex-grow: 0;
+      flex-shrink: 0;
+    }
+    
+    .product-tonnage-input span {
+      color: var(--secondary-color);
+      white-space: nowrap;
+      font-size: 0.9em;
+    }
+
+    /* Add-ons section styling */
+    .add-on-section {
+      margin-top: 15px;
+      padding-top: 10px;
+      border-top: 1px dashed var(--border-color);
+    }
+    
+    .add-on-title {
+      font-weight: bold;
+      color: #555;
+      margin-bottom: 8px;
+    }
+    
+    .add-on-item label {
+      font-weight: normal !important;
+    }
+
+    /* Checkbox container */
+    .checkbox-container {
+      margin: 10px 0;
+      max-height: 180px;
+      overflow-y: auto;
+      padding: 12px;
+      border: 1px solid #eee;
+      border-radius: var(--border-radius);
+      background-color: var(--light-color);
+    }
+    
+    .checkbox-item {
+      margin-bottom: 12px;
+    }
+
+    /* Warning styling */
+    .warning {
+      color: var(--danger-color);
+      font-size: 0.9em;
+      margin-top: 5px;
+    }
+
+    /* Product addon checkbox styling */
+    .product-addon-checkbox {
+      margin-left: 15px;
+      margin-top: 5px;
+      padding: 5px;
+      background-color: var(--pastel-green-light);
+      border-radius: 4px;
+      border: 1px solid var(--pastel-green);
+    }
+    
+    /* Fruit type breakdown styling - NEW */
+    .fruit-breakdown-container {
+      margin-top: 15px;
+      border-top: 1px dashed var(--border-color);
+      padding-top: 15px;
+    }
+    
+    .fruit-breakdown-title {
+      font-weight: 600;
+      color: var(--primary-color);
+      margin-bottom: 10px;
+      font-size: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .fruit-breakdown-section {
+      background-color: var(--light-color);
+      padding: 15px;
+      border-radius: var(--border-radius);
+      margin-bottom: 10px;
+    }
+    
+    .fruit-breakdown-header {
+      font-weight: 600;
+      color: var(--primary-color);
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+    
+    .fruit-breakdown-header .total {
+      color: var(--accent-color);
+    }
+    
+    .fruit-product-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0 6px 15px;
+      border-bottom: 1px dotted var(--border-color);
+      color: var(--secondary-color);
+    }
+    
+    .fruit-product-item:last-child {
+      border-bottom: none;
+    }
+    
+    .fruit-product-name {
+      font-size: 0.95rem;
+    }
+    
+    .fruit-product-price {
+      font-weight: 500;
+    }
+
+    /* Add-ons section within fruit breakdown */
+    .addons-section {
+      margin-top: 15px;
+      padding: 15px;
+      background-color: var(--light-color);
+      border-radius: var(--border-radius);
+      border-left: 3px solid var(--positive-number-color);
+    }
+    
+    .addons-header {
+      font-weight: 600;
+      color: var(--primary-color);
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+    
+    .addons-header .total {
+      color: var(--positive-number-color);
+    }
+    
+    .addon-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0 6px 15px;
+      border-bottom: 1px dotted var(--border-color);
+      color: var(--secondary-color);
+    }
+    
+    .addon-item:last-child {
+      border-bottom: none;
+    }
+    
+    /* ENHANCED FINAL PRICE SECTION STYLING */
+    .final-price {
+      background-color: var(--green-50, #e8f5e9);
+      padding: 20px;
+      border-radius: var(--border-radius);
+      margin-top: 25px;
+      border: 1px solid var(--green-100, #c8e6c9);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    
+    .final-price .result-row {
+      border-bottom: none;
+    }
+    
+    .final-price .result-value {
+      color: var(--green-700, #388e3c);
+      font-size: 1.3em;
+      font-weight: bold;
+    }
+    
+    .multi-year-details {
+      margin-top: 15px;
+    }
+    
+    .multi-year-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+    }
+    
+    .multi-year-label {
+      font-weight: 500;
+      color: var(--primary-color);
+    }
+    
+    .multi-year-value {
+      font-weight: 600;
+      color: var(--green-700, #388e3c);
+    }
+    
+    .border-t {
+      border-top: 1px solid #e2e8f0;
+      padding-top: 10px;
+      margin-top: 10px;
+    }
+
+    /* Hide base total when minimum pricing is applied */
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="loader-container" id="loaderContainer">
+    <div class="loader">
+      <div class="spinner"></div>
+      <div class="loader-text">Calculating your price...</div>
+    </div>
+  </div>
+
+  <div class="container">
+    <header class="header">
+      <h1>Hectre Fruit Pricing Calculator</h1>
+      <p class="header-subtitle">Customize your solution and see pricing instantly</p>
+    </header>
+    
+    <div id="calculatorForm">
+      <div class="grid-container">
+        <!-- Left Column - Client Information -->
+        <div>
+          <!-- Client Information Card -->
+          <div class="card">
+            <div class="card-header">
+              <svg class="card-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+              <h2 class="section-title">Client Information</h2>
+            </div>
+            
+            <div class="card-body">
+              <div class="form-group">
+                <label for="companyName">Company Name:</label>
+                <input type="text" id="companyName" placeholder="Enter company name">
+              </div>
+              
+              <div class="form-group">
+                <label for="salesContact">Salesperson Name:</label>
+                <input type="text" id="salesContact" placeholder="Enter salesperson name">
+              </div>
+              
+              <div class="form-group">
+                <label for="customerType">Customer Type:</label>
+                <select id="customerType">
+                  <option value="Grower">Grower</option>
+                  <option value="Packer">Packer</option>
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label for="region">Country/Region:</label>
+                <select id="region">
+                  <option value="">-- Select Region --</option>
+                  <!-- Region options will be populated from the Google Sheet -->
+                </select>
+                <span id="regionDiscountDisplay" class="discount-display"></span>
+              </div>
+              
+              <div class="form-group">
+                <label for="currency">Output Currency:</label>
+                <select id="currency">
+                  <option value="">-- Select Currency --</option>
+                  <!-- Currency options will be populated from the Google Sheet -->
+                </select>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Contract Details Card -->
+          <div class="card">
+            <div class="card-header">
+              <svg class="card-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 11.08V8l-6-6H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2v-3.08c1.1 0 2-.9 2-2v-4c0-1.1-.9-2-2-2z"></path>
+                <path d="M14 3v5h5"></path>
+              </svg>
+              <h2 class="section-title">Contract Details</h2>
+            </div>
+            
+            <div class="card-body">
+              <div class="form-group">
+                <label for="contractYears">Contract Duration:
+                  <span class="tooltip">
+                    <span class="tooltip-icon">?</span>
+                    <span class="tooltip-text">Longer contracts provide inflation protection and better value.</span>
+                  </span>
+                </label>
+                <select id="contractYears">
+                  <option value="1">1 Year</option>
+                  <option value="2">2 Years</option>
+                  <option value="3" selected>3 Years</option>
+                  <option value="4">4 Years</option>
+                  <option value="5">5 Years</option>
+                </select>
+                
+                <div id="inflationWaiver" style="color: var(--success-color); font-size: 0.9em; margin-top: 8px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -3px; margin-right: 5px;">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                  </svg>
+                  <span>Multi-year discount applied - inflation waived!</span>
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label for="paymentFrequency">Payment Frequency:</label>
+                <select id="paymentFrequency">
+                  <option value="">-- Select Frequency --</option>
+                  <!-- Payment frequency options will be populated from the Google Sheet -->
+                </select>
+                <span id="paymentDiscountDisplay" class="discount-display"></span>
+              </div>
+              
+              <div class="form-group">
+                <label for="discretionaryDiscount">Special Discount (%):</label>
+                <input type="number" id="discretionaryDiscount" min="0" max="100" value="0" step="0.1">
+                
+                <div id="discountWarning" style="display: none; color: var(--warning-color); font-size: 0.9em; margin-top: 8px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -3px; margin-right: 5px;">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                  </svg>
+                  <span>Discounts over 20% require manager approval</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="info-callout">
+            <p><strong>Why choose Hectre?</strong> Our solutions help maximize productivity and increase profit by optimizing your fruit operations with industry-leading technology.</p>
+          </div>
+        </div>
+        
+        <!-- Right Column - Fruit Selection -->
+        <div>
+          <div class="card">
+            <div class="card-header">
+              <svg class="card-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="8" r="7"></circle>
+                <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
+              </svg>
+              <h2 class="section-title">Fruit Selection</h2>
+            </div>
+            
+            <div class="card-body">
+              <div class="fruit-selector">
+                <label for="fruitType">Available Fruit Types:</label>
+                <select id="fruitType">
+                  <option value="">-- Select Fruit --</option>
+                  <!-- Fruit types will be populated from the Google Sheet -->
+                </select>
+              </div>
+              
+              <div id="currentProductsContainer">
+                <label id="currentProductsTitle" style="margin-top:15px; display: block;">Select Products:</label>
+                <div id="productsCheckboxes" class="checkbox-container">
+                  <p>Select a fruit type first.</p>
+                </div>
+              </div>
+              
+              <button class="primary" id="addFruitButton" style="margin-top: 15px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="16"></line>
+                  <line x1="8" y1="12" x2="16" y2="12"></line>
+                </svg>
+                Add Selected Fruit & Products
+              </button>
+              
+              <div id="selectedFruitsSection" class="hidden">
+                <label style="margin-top:20px; display: block;">Selected Items & Tonnage:</label>
+                <div id="selectedFruitsContainer" class="selected-fruits"></div>
+              </div>
+              
+              <!-- Camera Options (for Packer only) -->
+              <div id="cameraOptions" style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed var(--border-color); display: none;">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="cameraRental"> Topdown Lease (Camera + Lights) USD
+                  <span class="badge badge-warning">Hardware</span>
+                </label>
+                
+                <div id="cameraCountContainer" style="margin-left: 28px; margin-top: 10px; display: none;">
+                  <label for="cameraCount">Number of Cameras:</label>
+                  <div class="tonnage-input">
+                    <input type="number" id="cameraCount" min="1" value="1">
+                    <span>units</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Calculate Button -->
+          <button id="calculateButton" class="primary" style="width: 100%; font-size: 1.1em; padding: 15px 20px;">
+            Calculate Your Package
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Results Section - Hidden by Default -->
+    <div id="resultSection" class="result-section">
+      <div class="result-header">
+        <h2 class="result-title">
+          
+          Your Customized Solution
+        </h2>
+      </div>
+      
+      <div class="result-content">
+        <!-- Base Pricing Summary -->
+        <div id="basePricingSummary" style="margin-bottom: 25px;">
+          <h3 class="result-section-title">Solution Summary</h3>
+          <div class="result-row">
+            <div class="result-label">Base Total:</div>
+            <div class="result-value" id="resultBaseTotal">$0.00</div>
+          </div>
+          <div class="result-row">
+            <div class="result-label">Total Tonnage:</div>
+            <div class="result-value" id="resultTonnage">0 tonnes</div>
+          </div>
+          
+          <!-- Fruit breakdown section -->
+          <div class="fruit-breakdown-container">
+            <div class="fruit-breakdown-title">
+              <span>Product Breakdown by Fruit Type:</span>
+            </div>
+            <div id="fruitBreakdownContainer">
+              <!-- Fruit breakdowns will be added here dynamically -->
+            </div>
+            
+            <!-- Add-ons section within the fruit breakdown section -->
+            <div id="addonsContainer" class="addons-section" style="display: none;">
+              <div class="addons-header">
+                <span>Add-ons Total</span>
+                <span class="total" id="addonsTotal">$0.00</span>
+              </div>
+              <div id="addonItemsContainer">
+                <!-- Individual add-on items will be added here -->
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Discounts Section -->
+        <div style="margin-bottom: 25px;">
+          <h3 class="result-section-title">Your Savings & Adjustments</h3>
+          <div id="discountsContainer">
+            <!-- Discounts will be added here dynamically -->
+          </div>
+        </div>
+        
+        <!-- Visual arrow to final price -->
+        <div class="flex justify-center my-6" style="display: flex; justify-content: center; margin: 24px 0;">
+          <div style="background-color: #e8f5e9; border-radius: 50%; padding: 8px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <polyline points="19 12 12 19 5 12"></polyline>
+            </svg>
+          </div>
+        </div>
+        
+        <!-- ENHANCED FINAL PRICE SECTION -->
+        <div style="margin-bottom: 24px;">
+          <div class="bg-green-50 rounded-lg p-6 border border-green-100 shadow-sm" 
+               style="background-color: #e8f5e9; border-radius: 8px; padding: 24px; border: 1px solid #c8e6c9; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            
+            <!-- Multi-year display with more emphasis -->
+            <div id="multiYearPricing" style="display: none;">
+              <!-- Year 1 cost - Primary value -->
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <span style="font-size: 1.125rem; font-weight: 600; color: #2c3e50;">Year 1 Cost:</span>
+                <span id="finalTotal" style="font-size: 1.5rem; font-weight: 700; color: #2e7d32;">$0.00</span>
+              </div>
+              <div style="border-top: 1px solid #c8e6c9; margin: 12px 0;"></div>
+              
+              <!-- Contract Term -->
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <span style="color: #2c3e50; font-weight: 500;">Contract Term:</span>
+                <span id="contractLength" style="font-weight: 600; color: #2c3e50;">0 Years</span>
+              </div>
+              
+              <!-- Total Contract Value -->
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <span style="color: #2c3e50; font-weight: 500;">Total Contract Value:</span>
+                <span id="totalContractValue" style="font-size: 1.25rem; font-weight: 700; color: #2e7d32;">$0.00</span>
+              </div>
+              
+              <!-- Inflation Savings - highlighted -->
+              <div id="inflationSavingsContainer" style="margin-top: 16px; background-color: #c8e6c9; border-radius: 6px; padding: 12px; border: 1px solid #a5d6a7;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span style="color: #2e7d32; font-weight: 500;">Inflation Savings:</span>
+                  <span id="inflationSavings" style="font-weight: 700; color: #2e7d32;">$0.00</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Single year display -->
+            <div id="singleYearPricing" style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 1.25rem; font-weight: 600; color: #2c3e50;">Final Price:</span>
+              <span id="finalTotalSingle" style="font-size: 1.75rem; font-weight: 700; color: #2e7d32;">$0.00</span>
+            </div>
+            
+            <!-- Warning for approval -->
+            <div id="approvalWarning" style="display: none; margin-top: 16px; color: #f39c12; font-size: 0.875rem; background-color: #fff8e1; padding: 8px; border-radius: 6px; border: 1px solid #ffe082;">
+              * Discretionary discount over 20% requires manager approval
+            </div>
+          </div>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="actions-container">
+          <button id="resetButton" class="outline">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="1 4 1 10 7 10"></polyline>
+              <polyline points="23 20 23 14 17 14"></polyline>
+              <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path>
+            </svg>
+            Reset Calculator
+          </button>
+          <button id="exportDocButton" class="primary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Download Contract
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- Global Variables & Helpers ---
+    let data = null;
+    let selectedFruitsData = {};
+    let currentFruitSelection = { type: null, products: [], addOns: [] };
+    let latestResult = null;
+    const TEMPLATE_ID = '1sUO5ivgJELWlY6aMEWZ1vI5chfQo9ONCbw3Wcef5p4I';
+
+    // Helper function to ensure a value is always an array
+    function ensureArray(value) {
+      if (Array.isArray(value)) return value;
+      if (value === undefined || value === null) return [];
+      return [value];
+    }
+
+    // Helper to round to nearest whole number
+    function roundToWholeNumber(value) {
+      return Math.round(value);
+    }
+    
+    // Helper to round to nearest hundredth
+    function roundToNearestHundred(value) {
+      return Math.ceil(value / 100) * 100;
+    }
+
+    function formatPercent(dec) { 
+      return (typeof dec === 'number' && !isNaN(dec)) ? `${(dec * 100).toFixed(1)}%` : '0.0%'; 
+    }
+    
+    function formatCurrency(val, code = 'NZD') { 
+      // Round the value to the nearest hundred
+      const roundedValue = roundToNearestHundred(val);
+      return (typeof roundedValue === 'number' && !isNaN(roundedValue)) ? 
+        `${code} ${roundedValue.toLocaleString()}` : 
+        `${code} 0`; 
+    }
+    
+    function makeSafeId(txt) { 
+      return `id_${(typeof txt === 'string' ? txt : String(txt)).replace(/[^a-zA-Z0-9_]+/g, '_')}`; 
+    }
+
+    // --- Initialization & Event Listeners ---
+    document.addEventListener('DOMContentLoaded', () => { 
+      showLoader(true);
+      
+      // Set default values
+      document.getElementById('contractYears').value = '3';
+      document.getElementById('paymentFrequency').value = 'Annual';
+      
+      // Show inflation waiver for 3-year default
+      document.getElementById('inflationWaiver').style.display = 'block';
+      
+      google.script.run.withSuccessHandler(onDataLoaded).withFailureHandler(onDataLoadError).getData();
+      setupEventListeners();
+    });
+    
+    function setupEventListeners() {
+      document.getElementById('customerType').addEventListener('change', handleCustomerTypeChange);
+      document.getElementById('fruitType').addEventListener('change', handleFruitTypeChange);
+      document.getElementById('addFruitButton').addEventListener('click', handleAddFruit);
+      document.getElementById('calculateButton').addEventListener('click', handleCalculate);
+      document.getElementById('cameraRental').addEventListener('change', toggleCameraCount);
+      document.getElementById('discretionaryDiscount').addEventListener('input', checkDiscretionaryDiscount);
+      document.getElementById('region').addEventListener('change', updateRegionDiscountDisplay);
+      document.getElementById('paymentFrequency').addEventListener('change', updatePaymentDiscountDisplay);
+      document.getElementById('contractYears').addEventListener('change', handleContractYearsChange);
+      document.getElementById('productsCheckboxes').addEventListener('change', handleProductCheckboxChange);
+      document.getElementById('selectedFruitsContainer').addEventListener('input', handleTonnageInput);
+      document.getElementById('selectedFruitsContainer').addEventListener('click', handleRemoveFruit);
+      document.getElementById('selectedFruitsContainer').addEventListener('change', handleTonnageAddonChange);
+      document.getElementById('exportDocButton').addEventListener('click', handleExportDoc);
+      document.getElementById('resetButton').addEventListener('click', resetCalculator);
+    }
+
+    // --- Data Loading Functions ---
+    function onDataLoaded(receivedData) {
+      showLoader(false);
+      if (receivedData && receivedData.error) {
+        onDataLoadError(receivedData.error);
+        return;
+      }
+      
+      console.log("Data Received:", receivedData);
+      data = receivedData;
+      
+      if (!data?.growerTypes || !data?.packerTypes || !data?.regions || 
+          !data?.currencies || !data?.paymentFrequencies || !data?.addOns || 
+          !data?.tieredBulkDiscounts || !data?.minimumPrices || 
+          data?.cameraRentalPriceNZD === undefined || data?.inflationRateDecimal === undefined) {
+        onDataLoadError("Data object missing required properties. Check logs.");
+        console.error("Missing properties:", data);
+        return;
+      }
+      
+      populateCustomerType();
+      populateRegions();
+      populateCurrencies();
+      populatePaymentFrequencies();
+      updateRegionDiscountDisplay();
+      updatePaymentDiscountDisplay();
+      
+      // Set default payment frequency to Annual after data is loaded
+      if (data.paymentFrequencies && data.paymentFrequencies['Annual']) {
+        document.getElementById('paymentFrequency').value = 'Annual';
+        updatePaymentDiscountDisplay();
+      }
+    }
+    
+    function onDataLoadError(error) {
+      showLoader(false);
+      console.error("Load Error:", error);
+      
+      const msg = typeof error === 'string' ? error : (error?.message || "Unknown error loading data");
+      alert(`Failed to load calculator data: ${msg}.\nCheck Google Sheets & logs, then reload.`);
+      
+      document.getElementById('calculatorForm').querySelectorAll('input, select, button').forEach(el => el.disabled = true);
+    }
+    
+    function showLoader(show) {
+      document.getElementById('loaderContainer').style.display = show ? 'flex' : 'none';
+      document.getElementById('calculatorForm').classList.toggle('hidden', show);
+    }
+
+    // --- UI Population Functions ---
+    function populateCustomerType() {
+      handleCustomerTypeChange();
+    }
+    
+    function populateFruitTypes() {
+      const custType = document.getElementById('customerType').value;
+      const sel = document.getElementById('fruitType');
+      sel.innerHTML = '<option value="">-- Select Fruit --</option>';
+      
+      const types = (custType === 'Grower' ? data.growerTypes : data.packerTypes) || [];
+      types.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f;
+        opt.textContent = f;
+        opt.disabled = !!selectedFruitsData[f];
+        sel.appendChild(opt);
+      });
+      
+      handleFruitTypeChange();
+    }
+    
+    function populateProducts(fruitType) {
+      const custType = document.getElementById('customerType').value;
+      const cont = document.getElementById('productsCheckboxes');
+      const title = document.getElementById('currentProductsTitle');
+      currentFruitSelection.products = [];
+      currentFruitSelection.addOns = []; // Reset add-ons for this fruit
+      
+      if (!fruitType) {
+        title.textContent = "Select Products:";
+        cont.innerHTML = '<p>Select fruit type first.</p>';
+        return;
+      }
+      
+      title.textContent = `Select Products for ${fruitType}:`;
+      cont.innerHTML = '';
+      
+      const prods = (custType === 'Grower' ? data.growerProducts : data.packerProducts) || [];
+      
+      if (prods.length === 0) {
+        cont.innerHTML = '<p>No products available.</p>';
+        return;
+      }
+      
+      prods.forEach((p, idx) => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'checkbox-item';
+        
+        const lbl = document.createElement('label');
+        lbl.className = 'checkbox-label';
+        const cbId = `product_${makeSafeId(fruitType)}_${idx}`;
+        lbl.htmlFor = cbId;
+        
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.id = cbId;
+        cb.value = p;
+        cb.dataset.fruit = fruitType;
+        
+        lbl.appendChild(cb);
+        lbl.appendChild(document.createTextNode(` ${p}`));
+        
+        // Add any applicable add-ons right below each product (as checkboxes)
+        const addonsForThisProduct = getApplicableAddOns(fruitType, p);
+        
+        itemDiv.appendChild(lbl);
+        
+        // Add add-ons as checkboxes under the product if applicable
+        if (addonsForThisProduct.length > 0) {
+          const addOnContainerDiv = document.createElement('div');
+          addOnContainerDiv.className = 'product-addon-checkbox';
+          
+          addonsForThisProduct.forEach(addon => {
+            const addonDiv = document.createElement('div');
+            addonDiv.className = 'checkbox-item add-on-item';
+            
+            const addonLabel = document.createElement('label');
+            addonLabel.className = 'checkbox-label';
+            const addonId = `addon_${makeSafeId(fruitType)}_${makeSafeId(p)}_${makeSafeId(addon.name)}`;
+            
+            const addonCb = document.createElement('input');
+            addonCb.type = 'checkbox';
+            addonCb.id = addonId;
+            addonCb.value = addon.name;
+            addonCb.dataset.fruit = fruitType;
+            addonCb.dataset.product = p;
+            addonCb.dataset.addon = addon.name;
+            
+            addonLabel.appendChild(addonCb);
+            addonLabel.appendChild(document.createTextNode(` ${addon.name} `));
+            
+            addonDiv.appendChild(addonLabel);
+            addOnContainerDiv.appendChild(addonDiv);
+          });
+          
+          if (addOnContainerDiv.children.length > 0) {
+            itemDiv.appendChild(addOnContainerDiv);
+          }
+        }
+        
+        cont.appendChild(itemDiv);
+      });
+    }
+    
+    // Function to get applicable add-ons for a specific fruit and product
+    function getApplicableAddOns(fruitType, productName) {
+      const applicableAddOns = [];
+      
+      if (!data || !data.addOns) return applicableAddOns;
+      
+      for (const addonName in data.addOns) {
+        const addonDetails = data.addOns[addonName];
+        
+        if (addonDetails && addonDetails[productName] !== undefined) {
+          applicableAddOns.push({
+            name: addonName,
+            markup: addonDetails[productName]
+          });
+        }
+      }
+      
+      return applicableAddOns;
+    }
+    
+    function populateRegions() {
+      const sel = document.getElementById('region');
+      sel.innerHTML = '<option value="">-- Select Region --</option>';
+      
+      (data.regions || []).forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r;
+        opt.textContent = r;
+        sel.appendChild(opt);
+      });
+    }
+    
+    function populateCurrencies() {
+      const sel = document.getElementById('currency');
+      sel.innerHTML = '<option value="">-- Select Currency --</option>';
+
+      (data.currencies || []).forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        opt.textContent = c;
+        sel.appendChild(opt);
+      });
+
+    }
+    
+    function populatePaymentFrequencies() {
+      const sel = document.getElementById('paymentFrequency');
+      sel.innerHTML = '<option value="">-- Select Frequency --</option>';
+      
+      let hasOptions = false;
+      
+      for (const key in data.paymentFrequencies) {
+        const opt = document.createElement('option');
+        opt.value = key;
+        opt.textContent = key;
+        sel.appendChild(opt);
+        hasOptions = true;
+      }
+      
+      sel.disabled = !hasOptions;
+      updatePaymentDiscountDisplay();
+    }
+
+    // --- Event Handlers ---
+    function handleCustomerTypeChange() {
+      selectedFruitsData = {};
+      currentFruitSelection = { type: null, products: [], addOns: [] };
+      
+      populateFruitTypes();
+      updateSelectedFruitsDisplay();
+      toggleCameraOptions();
+      updateRegionDiscountDisplay();
+      updatePaymentDiscountDisplay();
+    }
+    
+    function handleFruitTypeChange() {
+      currentFruitSelection.type = document.getElementById('fruitType').value;
+      currentFruitSelection.products = [];
+      currentFruitSelection.addOns = []; // Reset add-ons for this fruit as an array
+      populateProducts(currentFruitSelection.type);
+    }
+    
+    function handleContractYearsChange() {
+      const years = parseInt(document.getElementById('contractYears').value) || 1;
+      const inflationWaiver = document.getElementById('inflationWaiver');
+      
+      // Show inflation waiver message for multi-year contracts
+      inflationWaiver.style.display = years > 1 ? 'block' : 'none';
+    }
+    
+    function handleProductCheckboxChange(e) {
+      if (e.target.type === 'checkbox') {
+        if (!e.target.dataset.addon && e.target.dataset.fruit) {
+          // This is a product checkbox
+          const p = e.target.value;
+          const f = e.target.dataset.fruit;
+          
+          if (currentFruitSelection.type === f) {
+            if (e.target.checked) {
+              if (!currentFruitSelection.products.includes(p)) {
+                currentFruitSelection.products.push(p);
+              }
+            } else {
+              currentFruitSelection.products = currentFruitSelection.products.filter(x => x !== p);
+              
+              // Remove any add-ons associated with this product
+              if (currentFruitSelection.addOns) {
+                for (const addonName in currentFruitSelection.addOns) {
+                  if (currentFruitSelection.addOns[addonName] && 
+                      currentFruitSelection.addOns[addonName].includes(p)) {
+                    currentFruitSelection.addOns[addonName] = 
+                      currentFruitSelection.addOns[addonName].filter(prod => prod !== p);
+                  }
+                }
+              }
+            }
+          }
+        } else if (e.target.dataset.addon && e.target.dataset.fruit && e.target.dataset.product) {
+          // This is an add-on checkbox
+          const addonName = e.target.dataset.addon;
+          const productName = e.target.dataset.product;
+          const fruitType = e.target.dataset.fruit;
+          
+          if (currentFruitSelection.type === fruitType) {
+            if (!currentFruitSelection.addOns[addonName]) {
+              currentFruitSelection.addOns[addonName] = [];
+            }
+            
+            if (e.target.checked) {
+              if (!currentFruitSelection.addOns[addonName].includes(productName)) {
+                currentFruitSelection.addOns[addonName].push(productName);
+              }
+            } else {
+              currentFruitSelection.addOns[addonName] = 
+                currentFruitSelection.addOns[addonName].filter(p => p !== productName);
+            }
+          }
+        }
+      }
+    }
+    
+    function handleAddFruit() {
+      const f = currentFruitSelection.type;
+      const p = currentFruitSelection.products;
+      const addOns = currentFruitSelection.addOns || {};
+      
+      if (!f) {
+        alert("Please select a fruit type.");
+        return;
+      }
+      
+      if (p.length === 0) {
+        alert(`Please select products for ${f}.`);
+        return;
+      }
+      
+      if (selectedFruitsData[f]) {
+        alert(`${f} is already added.`);
+        return;
+      }
+      
+      // Initialize fruit entry
+      selectedFruitsData[f] = {
+        products: {},
+        addOns: []
+      };
+      
+      // Add products with zero tonnage
+      p.forEach(prod => {
+        selectedFruitsData[f].products[prod] = 0;
+      });
+      
+      // Add selected add-ons
+      for (const addonName in addOns) {
+        if (addOns[addonName] && addOns[addonName].length > 0) {
+          if (!selectedFruitsData[f].addOns) {
+            selectedFruitsData[f].addOns = [];
+          }
+          selectedFruitsData[f].addOns.push(addonName);
+        }
+      }
+      
+      updateSelectedFruitsDisplay();
+      populateFruitTypes();
+      
+      document.getElementById('fruitType').value = "";
+      handleFruitTypeChange();
+      currentFruitSelection = { type: null, products: [], addOns: [] };
+      
+      // Show selected fruits section
+      document.getElementById('selectedFruitsSection').style.display = "block";
+      document.getElementById('selectedFruitsSection').classList.remove('hidden');
+    }
+    
+    function handleRemoveFruit(e) {
+      let target = e.target.closest('.remove-fruit-btn');
+      if (target) {
+        const f = target.dataset.fruit;
+        if (f && selectedFruitsData[f]) {
+          delete selectedFruitsData[f];
+          updateSelectedFruitsDisplay();
+          populateFruitTypes();
+        }
+      }
+    }
+    
+    function handleTonnageInput(e) {
+      if (e.target.classList.contains('product-tonnage-value-input')) {
+        const fruitType = e.target.dataset.fruit;
+        const productName = e.target.dataset.product;
+        const tonnage = parseFloat(e.target.value) || 0;
+        
+        if (selectedFruitsData[fruitType] && selectedFruitsData[fruitType].products.hasOwnProperty(productName)) {
+          selectedFruitsData[fruitType].products[productName] = tonnage;
+        }
+      }
+    }
+    
+    // New function to handle add-on changes in the tonnage section
+    function handleTonnageAddonChange(e) {
+      if (e.target.type === 'checkbox' && e.target.dataset.addon) {
+        const fruitType = e.target.dataset.fruit;
+        const addonName = e.target.dataset.addon;
+        const isChecked = e.target.checked;
+        
+        if (selectedFruitsData[fruitType]) {
+          // Initialize addOns array if it doesn't exist
+          if (!selectedFruitsData[fruitType].addOns) {
+            selectedFruitsData[fruitType].addOns = [];
+          }
+          
+          let addOns = selectedFruitsData[fruitType].addOns;
+          
+          if (isChecked && !addOns.includes(addonName)) {
+            addOns.push(addonName);
+          } else if (!isChecked && addOns.includes(addonName)) {
+            addOns = addOns.filter(a => a !== addonName);
+          }
+          
+          selectedFruitsData[fruitType].addOns = addOns;
+        }
+      }
+    }
+
+    // --- UI Update Functions ---
+    function updateSelectedFruitsDisplay() {
+      const container = document.getElementById('selectedFruitsContainer');
+      const section = document.getElementById('selectedFruitsSection');
+      container.innerHTML = '';
+      
+      if (Object.keys(selectedFruitsData).length > 0) {
+        section.style.display = "block";
+        section.classList.remove('hidden');
+        
+        for (const fruitType in selectedFruitsData) {
+          const fruitInfo = selectedFruitsData[fruitType];
+          const products = fruitInfo.products || {};
+          const safeFruitId = makeSafeId(fruitType);
+          
+          const fruitBlock = document.createElement('div');
+          fruitBlock.className = 'selected-fruit-item';
+          fruitBlock.id = `selected_${safeFruitId}`;
+          
+          const headerDiv = document.createElement('div');
+          headerDiv.className = 'fruit-item-header';
+          
+          const nameSpan = document.createElement('span');
+          nameSpan.innerHTML = `<b>${fruitType}</b>`;
+          
+          const removeBtn = document.createElement('button');
+          removeBtn.textContent = '✖';
+          removeBtn.className = 'remove-fruit-btn';
+          removeBtn.dataset.fruit = fruitType;
+          removeBtn.title = `Remove ${fruitType}`;
+          
+          headerDiv.appendChild(nameSpan);
+          headerDiv.appendChild(removeBtn);
+          fruitBlock.appendChild(headerDiv);
+          
+          if (Object.keys(products).length > 0) {
+            for (const productName in products) {
+              const productTonnage = products[productName];
+              const productRow = document.createElement('div');
+              productRow.className = 'product-tonnage-row';
+              
+              const safeProductId = makeSafeId(productName);
+              
+              const productLabel = document.createElement('label');
+              productLabel.textContent = productName + ':';
+              productLabel.htmlFor = `tonnage_${safeFruitId}_${safeProductId}`;
+              
+              const tonnageInputDiv = document.createElement('div');
+              tonnageInputDiv.className = 'product-tonnage-input';
+              
+              const tonnageInput = document.createElement('input');
+              tonnageInput.type = 'number';
+              tonnageInput.id = `tonnage_${safeFruitId}_${safeProductId}`;
+              tonnageInput.value = productTonnage || 0;
+              tonnageInput.min = "0";
+              tonnageInput.step = "any";
+              tonnageInput.dataset.fruit = fruitType;
+              tonnageInput.dataset.product = productName;
+              tonnageInput.className = 'product-tonnage-value-input';
+              
+              const tonnageUnit = document.createElement('span');
+              tonnageUnit.className = 'tonnage-unit';
+              tonnageUnit.textContent = ' tonnes';
+              
+              tonnageInputDiv.appendChild(tonnageInput);
+              tonnageInputDiv.appendChild(tonnageUnit);
+              
+              productRow.appendChild(productLabel);
+              productRow.appendChild(tonnageInputDiv);
+              fruitBlock.appendChild(productRow);
+              
+              // Add applicable add-ons as checkboxes for this product
+              const applicableAddOns = getApplicableAddOns(fruitType, productName);
+              if (applicableAddOns.length > 0) {
+                const addOnContainer = document.createElement('div');
+                addOnContainer.className = 'product-addon-checkbox';
+                addOnContainer.style.marginLeft = '25px';
+                addOnContainer.style.marginBottom = '10px';
+                
+                applicableAddOns.forEach(addon => {
+                  const checkboxDiv = document.createElement('div');
+                  const addonLabel = document.createElement('label');
+                  addonLabel.className = 'checkbox-label';
+                  
+                  const addonCb = document.createElement('input');
+                  addonCb.type = 'checkbox';
+                  addonCb.value = addon.name;
+                  // Ensure addOns is an array and check if addon is selected
+                  const fruitAddOns = ensureArray(fruitInfo.addOns);
+                  addonCb.checked = fruitAddOns && fruitAddOns.includes(addon.name);
+                  addonCb.dataset.fruit = fruitType;
+                  addonCb.dataset.product = productName;
+                  addonCb.dataset.addon = addon.name;
+                  
+                  addonLabel.appendChild(addonCb);
+                  addonLabel.appendChild(document.createTextNode(` ${addon.name} `));
+                  
+                  checkboxDiv.appendChild(addonLabel);
+                  addOnContainer.appendChild(checkboxDiv);
+                });
+                
+                fruitBlock.appendChild(addOnContainer);
+              }
+            }
+          } else {
+            const noProd = document.createElement('p');
+            noProd.textContent = "(No products added)";
+            noProd.style.cssText = 'font-size:0.9em; margin-left:15px; color:#6c757d;';
+            fruitBlock.appendChild(noProd);
+          }
+          
+          container.appendChild(fruitBlock);
+        }
+      } else {
+        section.style.display = "none";
+        section.classList.add('hidden');
+      }
+    }
+    
+    function updateRegionDiscountDisplay() {
+      const sel = document.getElementById('region');
+      const span = document.getElementById('regionDiscountDisplay');
+      const cust = document.getElementById('customerType').value;
+      
+      if (!data || !sel.value) {
+        span.textContent = '';
+        return;
+      }
+      
+      const idx = data.regions.indexOf(sel.value);
+      let dec = 0;
+      
+      if (idx !== -1) {
+        dec = cust === 'Grower' ? 
+              (data.growerRegionDiscounts?.[idx] ?? 0) : 
+              (data.packerRegionDiscounts?.[idx] ?? 0);
+      }
+      
+      span.textContent = dec > 0 ? `(${formatPercent(dec)} discount)` : '';
+    }
+    
+    function updatePaymentDiscountDisplay() {
+      const sel = document.getElementById('paymentFrequency');
+      const span = document.getElementById('paymentDiscountDisplay');
+      
+      if (!data || !sel.value) {
+        span.textContent = '';
+        return;
+      }
+      
+      const dec = data.paymentFrequencies[sel.value] || 0;
+      span.textContent = dec > 0 ? `(${formatPercent(dec)} discount)` : '';
+    }
+    
+    function toggleCameraOptions() {
+      const cust = document.getElementById('customerType').value;
+      const optsDiv = document.getElementById('cameraOptions');
+      const cb = document.getElementById('cameraRental');
+      
+      optsDiv.style.display = cust === 'Packer' ? 'block' : 'none';
+      
+      if (cust !== 'Packer') {
+        cb.checked = false;
+        toggleCameraCount();
+      }
+    }
+    
+    function toggleCameraCount() {
+      document.getElementById('cameraCountContainer').style.display = 
+        document.getElementById('cameraRental').checked ? 'block' : 'none';
+    }
+    
+    function checkDiscretionaryDiscount() {
+      const val = parseFloat(document.getElementById('discretionaryDiscount').value) || 0;
+      document.getElementById('discountWarning').style.display = val > 20 ? 'block' : 'none';
+    }
+
+    // --- Calculation Functions ---
+    function handleCalculate() {
+      if (Object.keys(selectedFruitsData).length === 0) {
+        alert("Please add at least one fruit type.");
+        return;
+      }
+      
+      let validTonnage = true;
+      
+      for (const fruitType in selectedFruitsData) {
+        let prods = selectedFruitsData[fruitType].products;
+        
+        if (Object.keys(prods).length === 0) {
+          alert(`No products selected for ${fruitType}.`);
+          validTonnage = false;
+          break;
+        }
+        
+        for (const pName in prods) {
+          if (!prods[pName] || prods[pName] <= 0) {
+            alert(`Please enter a tonnage (>0) for ${pName} under ${fruitType}.`);
+            validTonnage = false;
+            break;
+          }
+        }
+        
+        if (!validTonnage) break;
+      }
+      
+      if (!validTonnage) return;
+      
+      const region = document.getElementById('region').value;
+      const currency = document.getElementById('currency').value;
+      const paymentFrequency = document.getElementById('paymentFrequency').value;
+      
+      if (!region || !currency || !paymentFrequency) {
+        alert("Please select Region, Currency and Payment Frequency.");
+        return;
+      }
+      
+      const formData = {
+        customerType: document.getElementById('customerType').value,
+        selectedFruits: selectedFruitsData,
+        region,
+        currency,
+        paymentFrequency,
+        includeCamera: document.getElementById('cameraRental').checked,
+        cameraCount: parseInt(document.getElementById('cameraCount').value) || 0,
+        discretionaryDiscount: parseFloat(document.getElementById('discretionaryDiscount').value) || 0,
+        contractYears: parseInt(document.getElementById('contractYears').value) || 1,
+        companyName: document.getElementById('companyName').value,
+        salesContact: document.getElementById('salesContact').value
+      };
+      
+      setCalculatingState(true);
+      
+      // Call the Google Apps Script backend to calculate pricing
+      google.script.run
+        .withSuccessHandler(onCalculationSuccess)
+        .withFailureHandler(onCalculationError)
+        .calculatePrice(formData);
+    }
+    
+    function setCalculatingState(isCalc) {
+      const btn = document.getElementById('calculateButton');
+      btn.disabled = isCalc;
+      btn.textContent = isCalc ? 'Calculating...' : 'Calculate Your Package';
+      document.getElementById('loaderContainer').style.display = isCalc ? 'flex' : 'none';
+      
+      if (isCalc) {
+        document.getElementById('resultSection').style.display = 'none';
+      }
+    }
+    
+    function onCalculationSuccess(res) {
+      setCalculatingState(false);
+      console.log("Calculation Result:", res);
+      
+      if (res.error) {
+        onCalculationError(res.error);
+        return;
+      }
+      
+      if (!res.success) {
+        onCalculationError("Calculation unsuccessful.");
+        return;
+      }
+      
+      latestResult = res;
+      displayResult(res);
+    }
+    
+    function onCalculationError(err) {
+      setCalculatingState(false);
+      
+      const msg = typeof err === 'string' ? err : (err?.message || "Unknown error");
+      console.error("Calculation Error:", err);
+      alert(`Calculation failed: ${msg}`);
+      
+      latestResult = null;
+    }
+
+    // --- Results Display Functions ---
+    function displayResult(result) {
+      // Update result section content
+      document.getElementById('resultBaseTotal').textContent = formatCurrency(result.baseTotal, result.currency);
+      
+      // Keep the total tonnage as is (not rounded to the nearest hundred)
+      const roundedTotalTonnage = roundToWholeNumber(result.totalTonnage);
+      document.getElementById('resultTonnage').textContent = `${roundedTotalTonnage} tonnes`;
+      
+      // Update final price display
+      const years = result.contractYears || 1;
+      const multiYearSection = document.getElementById('multiYearPricing');
+      const singleYearSection = document.getElementById('singleYearPricing');
+      const approvalWarning = document.getElementById('approvalWarning');
+      
+      // Show approval warning if discretionary discount > 20%
+      const discountPercent = (result.discretionaryDiscountPercentDecimal || 0) * 100;
+      approvalWarning.style.display = discountPercent > 20 ? 'block' : 'none';
+      
+      // Set the final price
+      if (years > 1) {
+        // Multi-year display
+        multiYearSection.style.display = 'block';
+        singleYearSection.style.display = 'none';
+        
+        document.getElementById('finalTotal').textContent = formatCurrency(result.finalYear1Cost, result.currency);
+        document.getElementById('contractLength').textContent = `${years} Years`;
+        document.getElementById('totalContractValue').textContent = formatCurrency(result.totalContractValue || 0, result.currency);
+        document.getElementById('inflationSavings').textContent = formatCurrency(result.inflationSavings || 0, result.currency);
+        
+        // Hide inflation savings if not applicable
+        const inflationSavingsContainer = document.getElementById('inflationSavingsContainer');
+        inflationSavingsContainer.style.display = (result.inflationSavings > 0) ? 'block' : 'none';
+      } else {
+        // Single year display
+        multiYearSection.style.display = 'none';
+        singleYearSection.style.display = 'flex';
+        document.getElementById('finalTotalSingle').textContent = formatCurrency(result.finalYear1Cost, result.currency);
+      }
+      
+      // Check if there are any minimum price adjustments applied
+      const hasMinPriceAdjustments = result.totalMinPriceAdjustments > 0;
+      
+      // Hide only the Base Total row if minimum pricing is applied
+      const baseTotalRow = document.querySelector('.result-row:has(#resultBaseTotal)') || 
+                          document.querySelector('.result-row').parentNode.querySelector('.result-row:first-child');
+      if (baseTotalRow && hasMinPriceAdjustments) {
+        baseTotalRow.style.display = 'none';
+      } else if (baseTotalRow) {
+        baseTotalRow.style.display = 'flex';
+      }
+      
+      // Create fruit type breakdown
+      const breakdownContainer = document.getElementById('fruitBreakdownContainer');
+      breakdownContainer.innerHTML = '';
+      
+      // Group products by fruit type for the breakdown
+      let fruitBreakdowns = {};
+      
+      // First collect all products and their final prices
+      if (result.productFinalPrices && result.productTonnages) {
+        for (const fruitType in result.productFinalPrices) {
+          const fruitProducts = result.productFinalPrices[fruitType];
+          const tonnages = result.productTonnages[fruitType] || {};
+          
+          if (!fruitBreakdowns[fruitType]) {
+            fruitBreakdowns[fruitType] = {
+              products: [],
+              totalPrice: 0
+            };
+          }
+          
+          for (const productName in fruitProducts) {
+            const price = fruitProducts[productName];
+            const tonnage = tonnages[productName] || 0;
+            
+            if (price > 0) {
+              fruitBreakdowns[fruitType].products.push({
+                name: productName,
+                price: price,
+                tonnage: tonnage
+              });
+              
+              fruitBreakdowns[fruitType].totalPrice += price;
+            }
+          }
+        }
+      }
+      
+      // Then create UI elements for each fruit type
+      for (const fruitType in fruitBreakdowns) {
+        const fruitData = fruitBreakdowns[fruitType];
+        
+        // Only show fruit types with products
+        if (fruitData.products.length > 0) {
+          const fruitSection = document.createElement('div');
+          fruitSection.className = 'fruit-breakdown-section';
+          
+          // Create header with fruit type and total
+          const fruitHeader = document.createElement('div');
+          fruitHeader.className = 'fruit-breakdown-header';
+          
+          // Round the total price for this fruit to nearest hundred
+          const roundedFruitTotal = roundToNearestHundred(fruitData.totalPrice);
+          fruitHeader.innerHTML = `
+            <span>${fruitType}</span>
+            <span class="total">${formatCurrency(roundedFruitTotal, result.currency)}</span>
+          `;
+          
+          fruitSection.appendChild(fruitHeader);
+          
+          // Add each product with price
+          fruitData.products.forEach(product => {
+            // Round the product price to nearest hundred
+            // Keep the tonnage as a whole number
+            const roundedTonnage = roundToWholeNumber(product.tonnage);
+            const roundedPrice = roundToNearestHundred(product.price);
+            
+            const productItem = document.createElement('div');
+            productItem.className = 'fruit-product-item';
+            productItem.innerHTML = `
+              <span class="fruit-product-name">${product.name} (${roundedTonnage} t)</span>
+              <span class="fruit-product-price">${formatCurrency(roundedPrice, result.currency)}</span>
+            `;
+            fruitSection.appendChild(productItem);
+          });
+          
+          breakdownContainer.appendChild(fruitSection);
+        }
+      }
+      
+      // If no breakdowns were created, show a message
+      if (breakdownContainer.children.length === 0) {
+        breakdownContainer.innerHTML = '<div class="text-gray-500 italic">No product breakdown available</div>';
+      }
+
+      // Handle add-ons section
+      const addonsContainer = document.getElementById('addonsContainer');
+      const addonItemsContainer = document.getElementById('addonItemsContainer');
+      const addonsTotalElement = document.getElementById('addonsTotal');
+      
+      if (result.totalAddOnCost > 0 && result.addOnCosts) {
+        // Show add-ons in the fruit breakdown section
+        addonsContainer.style.display = 'block';
+        
+        // Round the total add-on cost to nearest hundred
+        const roundedAddOnTotal = roundToNearestHundred(result.totalAddOnCost);
+        addonsTotalElement.textContent = formatCurrency(roundedAddOnTotal, result.currency);
+        
+        addonItemsContainer.innerHTML = '';
+        for (const [addonName, cost] of Object.entries(result.addOnCosts)) {
+          if (cost > 0) {
+            // Round each add-on cost to nearest hundred
+            const roundedCost = roundToNearestHundred(cost);
+            
+            const addonItem = document.createElement('div');
+            addonItem.className = 'addon-item';
+            addonItem.innerHTML = `
+              <span class="addon-name">${addonName}</span>
+              <span class="addon-price">${formatCurrency(roundedCost, result.currency)}</span>
+            `;
+            addonItemsContainer.appendChild(addonItem);
+          }
+        }
+      } else {
+        // Hide add-ons section if no add-ons were selected
+        addonsContainer.style.display = 'none';
+      }
+      
+      // Populate discounts
+      const discountsContainer = document.getElementById('discountsContainer');
+      discountsContainer.innerHTML = '';
+      
+      let hasDiscounts = false;
+      
+      // Bulk discount
+      if (result.bulkDiscountAmount > 0) {
+        hasDiscounts = true;
+        const roundedBulkDiscount = roundToNearestHundred(result.bulkDiscountAmount);
+        const discountRow = createDiscountRow(
+          `Bulk Purchase Discount`,
+          -roundedBulkDiscount,
+          result.currency,
+          'discount-value'
+        );
+        discountsContainer.appendChild(discountRow);
+      }
+      
+      // Region discount
+      if (result.regionDiscountAmount > 0) {
+        hasDiscounts = true;
+        const roundedRegionDiscount = roundToNearestHundred(result.regionDiscountAmount);
+        const discountRow = createDiscountRow(
+          `Regional Discount (${formatPercent(result.regionDiscountPercentDecimal)})`,
+          -roundedRegionDiscount,
+          result.currency,
+          'discount-value'
+        );
+        discountsContainer.appendChild(discountRow);
+      }
+      
+      // Payment frequency discount
+      if (result.paymentFrequencyDiscountAmount > 0) {
+        hasDiscounts = true;
+        const roundedFrequencyDiscount = roundToNearestHundred(result.paymentFrequencyDiscountAmount);
+        const discountRow = createDiscountRow(
+          `Payment Frequency Discount (${formatPercent(result.paymentFrequencyDiscountPercentDecimal)})`,
+          -roundedFrequencyDiscount,
+          result.currency,
+          'discount-value'
+        );
+        discountsContainer.appendChild(discountRow);
+      }
+      
+      // Discretionary discount
+      if (result.discretionaryDiscountAmount > 0) {
+        hasDiscounts = true;
+        const roundedDiscretionaryDiscount = roundToNearestHundred(result.discretionaryDiscountAmount);
+        const discountRow = createDiscountRow(
+          `Special Discount (${formatPercent(result.discretionaryDiscountPercentDecimal)})`,
+          -roundedDiscretionaryDiscount,
+          result.currency,
+          'discount-value'
+        );
+        discountsContainer.appendChild(discountRow);
+      }
+      
+      // Camera rental - Now displayed in the discounts section instead of add-ons
+      if (result.cameraRental > 0) {
+        hasDiscounts = true;
+        const roundedCameraRental = roundToNearestHundred(result.cameraRental);
+        const cameraRow = createDiscountRow(
+          `Camera Rental (${result.cameraCount} ${result.cameraCount > 1 ? 'cameras' : 'camera'})`,
+          roundedCameraRental,
+          result.currency,
+          'addon-value'
+        );
+        discountsContainer.appendChild(cameraRow);
+      }
+      
+      // No discounts fallback
+      if (!hasDiscounts) {
+        const noDiscountRow = document.createElement('div');
+        noDiscountRow.className = 'result-row';
+        noDiscountRow.innerHTML = `
+          <div class="result-label">No discounts applied</div>
+          <div class="result-value">${formatCurrency(0, result.currency)}</div>
+        `;
+        discountsContainer.appendChild(noDiscountRow);
+      }
+      
+      // Hide calculator form and show results
+      document.getElementById('calculatorForm').style.display = 'none';
+      document.getElementById('resultSection').style.display = 'block';
+      
+      // Scroll to results
+      document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    
+    function createDiscountRow(label, amount, currency, valueClass = '') {
+      const row = document.createElement('div');
+      row.className = 'result-row';
+      
+      const labelDiv = document.createElement('div');
+      labelDiv.className = 'result-label';
+      labelDiv.textContent = label;
+      
+      const valueDiv = document.createElement('div');
+      valueDiv.className = `result-value ${valueClass}`;
+      
+      // Format based on positive or negative amount
+      const sign = amount >= 0 ? '+' : '';
+      valueDiv.textContent = `${sign}${formatCurrency(amount, currency)}`;
+      
+      row.appendChild(labelDiv);
+      row.appendChild(valueDiv);
+      return row;
+    }
+
+    // --- Export Functions ---
+    function handleExportDoc() {
+      if (!latestResult) {
+        alert("Please calculate a price first.");
+        return;
+      }
+      
+      const exportBtn = document.getElementById('exportDocButton');
+      exportBtn.textContent = "Generating Contract...";
+      exportBtn.disabled = true;
+      
+      // Call the Google Apps Script function to create a report document
+      google.script.run
+        .withSuccessHandler(onExportSuccess)
+        .withFailureHandler(onExportError)
+        .createDocReport(latestResult, TEMPLATE_ID);
+    }
+    
+    function onExportSuccess(dataObject) {
+      const exportBtn = document.getElementById('exportDocButton');
+      exportBtn.textContent = "Download Contract";
+      exportBtn.disabled = false;
+      
+      if (dataObject && dataObject.error) {
+        onExportError(dataObject.error);
+        return;
+      }
+      
+      if (dataObject && dataObject.base64 && dataObject.filename && dataObject.contentType) {
+        console.log("Received data for:", dataObject.filename);
+        
+        // Create download link for the document
+        const link = document.createElement('a');
+        link.href = `data:${dataObject.contentType};base64,${dataObject.base64}`;
+        link.download = dataObject.filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        onExportError("Received invalid data from server for export.");
+      }
+    }
+    
+    function onExportError(error) {
+      const exportBtn = document.getElementById('exportDocButton');
+      exportBtn.textContent = "Download Contract";
+      exportBtn.disabled = false;
+      
+      const msg = typeof error === 'string' ? error : (error?.message || "Unknown export error");
+      console.error("Export Error:", error);
+      alert(`Failed to generate report: ${msg}`);
+    }
+    
+    // --- Reset Function ---
+    function resetCalculator() {
+      // Reset form data
+      selectedFruitsData = {};
+      currentFruitSelection = { type: null, products: [], addOns: [] };
+      latestResult = null;
+      
+      // Reset UI elements
+      document.getElementById('calculatorForm').style.display = 'block';
+      document.getElementById('resultSection').style.display = 'none';
+      document.getElementById('selectedFruitsSection').style.display = 'none';
+      document.getElementById('selectedFruitsSection').classList.add('hidden');
+      document.getElementById('discretionaryDiscount').value = '0';
+      document.getElementById('discountWarning').style.display = 'none';
+      document.getElementById('cameraRental').checked = false;
+      document.getElementById('cameraCountContainer').style.display = 'none';
+      
+      // Reset to default values
+      document.getElementById('contractYears').value = '3';
+      document.getElementById('paymentFrequency').value = 'Annual';
+      document.getElementById('inflationWaiver').style.display = 'block';
+      
+      // Reset form visibility and scroll to top
+      updateSelectedFruitsDisplay();
+      populateFruitTypes();
+      
+      // Scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  </script>
+</body>
+</html>
