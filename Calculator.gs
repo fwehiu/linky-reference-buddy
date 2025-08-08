@@ -271,7 +271,30 @@ function getData() {
         }
       });
     }
-    return { growerTypes: growerFruitTypes, packerTypes: packerFruitTypes, growerProducts: growerProducts, packerProducts: packerProducts, growerRates: growerRates, packerRates: packerRates, currencies: currencies, currencyRates: rates, regions: regions, growerRegionDiscounts: growerRegionDiscounts, packerRegionDiscounts: packerRegionDiscounts, paymentFrequencies: paymentFrequencies, tieredBulkDiscounts: tieredBulkDiscounts, addOns: addOns, cameraRentalPriceNZD: cameraRentalPriceNZD, inflationRateDecimal: inflationRateDecimal, minimumPrices: minimumPrices };
+
+    // One-off Add-on Products from Bulk Discounts!V7:V (name) and W7:W (price NZD)
+    var oneOffAddOnItems = [];
+    try {
+      const colVAll = discountsSheet.getRange(7, 22, discountsSheet.getMaxRows() - 6, 1).getValues();
+      let lastIdx = colVAll.length - 1;
+      while (lastIdx >= 0 && String(colVAll[lastIdx][0] || '').trim() === '') lastIdx--;
+      const numRows = Math.max(0, lastIdx + 1);
+      if (numRows > 0) {
+        const oneOffRange = discountsSheet.getRange(7, 22, numRows, 2).getValues();
+        oneOffRange.forEach(row => {
+          const name = String(row[0] || '').trim();
+          const priceRaw = row[1];
+          const priceNZD = parseFloat(String(priceRaw).toString().replace(/[^0-9.-]+/g, ''));
+          if (name && !isNaN(priceNZD) && isFinite(priceNZD)) {
+            oneOffAddOnItems.push({ name: name, priceNZD: priceNZD });
+          }
+        });
+      }
+    } catch (e) {
+      Logger.log('One-off add-on load error: ' + e);
+    }
+
+    return { growerTypes: growerFruitTypes, packerTypes: packerFruitTypes, growerProducts: growerProducts, packerProducts: packerProducts, growerRates: growerRates, packerRates: packerRates, currencies: currencies, currencyRates: rates, regions: regions, growerRegionDiscounts: growerRegionDiscounts, packerRegionDiscounts: packerRegionDiscounts, paymentFrequencies: paymentFrequencies, tieredBulkDiscounts: tieredBulkDiscounts, addOns: addOns, cameraRentalPriceNZD: cameraRentalPriceNZD, inflationRateDecimal: inflationRateDecimal, minimumPrices: minimumPrices, oneOffAddOnItems: oneOffAddOnItems };
   } catch (e) { 
     Logger.log(`GetData Error: ${e}\n${e.stack}`); 
     return { error: `Data fetch failed: ${e.message}` }; 
