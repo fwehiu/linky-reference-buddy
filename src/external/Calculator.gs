@@ -274,14 +274,16 @@ function getData() {
     // One-off Add-on Products from Bulk Discounts!V7:V (name) and W7:W (price NZD)
     var oneOffAddOnItems = [];
     try {
-      const lastRow = discountsSheet.getLastRow();
-      const numRows = Math.max(0, lastRow - 6);
+      // Use last row with data in column V to avoid trailing blanks
+      const lastRowV = discountsSheet.getRange('V:V').getValues().filter(String).length;
+      const numRows = Math.max(0, lastRowV - 6);
       if (numRows > 0) {
-        // Column V = 22, W = 23
+        // Column V = 22 (names), W = 23 (prices)
         const oneOffRange = discountsSheet.getRange(7, 22, numRows, 2).getValues();
         oneOffRange.forEach(row => {
           const name = String(row[0] || '').trim();
-          const priceNZD = parseFloat(row[1]);
+          const priceRaw = row[1];
+          const priceNZD = parseFloat(String(priceRaw).toString().replace(/[^0-9.-]+/g, ''));
           if (name && !isNaN(priceNZD) && isFinite(priceNZD)) {
             oneOffAddOnItems.push({ name: name, priceNZD: priceNZD });
           }
