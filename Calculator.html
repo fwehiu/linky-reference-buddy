@@ -1144,6 +1144,14 @@
                   </div>
                 </div>
               </div>
+
+              <!-- One-off Add-on Products (from Base Rates V/W) -->
+              <div id="addonProductsSection" style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed var(--border-color);">
+                <label>Add-on Products (one-off):</label>
+                <div id="addonProductsList" class="checkbox-container">
+                  <!-- Populated dynamically -->
+                </div>
+              </div>
             </div>
           </div>
           
@@ -1292,6 +1300,7 @@
     // --- Global Variables & Helpers ---
     let data = null;
     let selectedFruitsData = {};
+    let selectedAddonProducts = {};
     let currentFruitSelection = { type: null, products: [], addOns: [] };
     let latestResult = null;
     const TEMPLATE_ID = '1sUO5ivgJELWlY6aMEWZ1vI5chfQo9ONCbw3Wcef5p4I';
@@ -1388,11 +1397,77 @@
       populatePaymentFrequencies();
       updateRegionDiscountDisplay();
       updatePaymentDiscountDisplay();
-      
-      // Set default payment frequency to Annual after data is loaded
-      if (data.paymentFrequencies && data.paymentFrequencies['Annual']) {
-        document.getElementById('paymentFrequency').value = 'Annual';
-        updatePaymentDiscountDisplay();
+
+      // Populate one-off Add-on Products list (Base Rates V/W)
+      const list = document.getElementById('addonProductsList');
+      if (list) {
+        list.innerHTML = '';
+        const items = (data.oneOffAddOnProducts && data.oneOffAddOnProducts.length)
+          ? data.oneOffAddOnProducts
+          : (function(){
+              const names = Array.isArray(data.AddonProduct) ? data.AddonProduct : [];
+              const prices = Array.isArray(data.AddonProductPrice) ? data.AddonProductPrice : [];
+              const arr = [];
+              for (let i=0;i<Math.max(names.length, prices.length);i++){
+                const n = String(names[i]||'').trim();
+                const p = parseFloat(prices[i]);
+                if (n && !isNaN(p) && isFinite(p)) arr.push({ name: n, priceNZD: p });
+              }
+              return arr;
+            })();
+        items.forEach(item => {
+          const row = document.createElement('div');
+          row.className = 'checkbox-item';
+
+          const label = document.createElement('label');
+          label.className = 'checkbox-label';
+
+          const cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.className = 'addon-product-checkbox';
+          cb.dataset.name = item.name;
+          label.appendChild(cb);
+          label.appendChild(document.createTextNode(` ${item.name} (${(item.priceNZD).toLocaleString()} NZD per unit)`));
+
+          const qtyWrap = document.createElement('div');
+          qtyWrap.className = 'tonnage-input';
+          qtyWrap.style.marginLeft = '28px';
+
+          const qty = document.createElement('input');
+          qty.type = 'number';
+          qty.min = '1';
+          qty.placeholder = 'Qty';
+          qty.className = 'addon-product-qty';
+          qty.disabled = true;
+
+          qtyWrap.appendChild(qty);
+          const unitsSpan = document.createElement('span');
+          unitsSpan.textContent = 'units';
+          qtyWrap.appendChild(unitsSpan);
+
+          cb.addEventListener('change', () => {
+            if (cb.checked) {
+              qty.disabled = false;
+              if (!qty.value) qty.value = '1';
+              selectedAddonProducts[item.name] = parseInt(qty.value, 10) || 1;
+            } else {
+              qty.disabled = true;
+              qty.value = '';
+              delete selectedAddonProducts[item.name];
+            }
+          });
+          qty.addEventListener('input', () => {
+            const v = parseInt(qty.value, 10) || 0;
+            if (cb.checked) {
+              if (v > 0) selectedAddonProducts[item.name] = v;
+              else delete selectedAddonProducts[item.name];
+            }
+          });
+
+          row.appendChild(label);
+          row.appendChild(qtyWrap);
+          list.appendChild(row);
+        });
       }
     }
     
@@ -1988,7 +2063,8 @@
         discretionaryDiscount: parseFloat(document.getElementById('discretionaryDiscount').value) || 0,
         contractYears: parseInt(document.getElementById('contractYears').value) || 1,
         companyName: document.getElementById('companyName').value,
-        salesContact: document.getElementById('salesContact').value
+        salesContact: document.getElementById('salesContact').value,
+        addOnProducts: selectedAddonProducts
       };
       
       setCalculatingState(true);
@@ -2392,6 +2468,14 @@
       document.getElementById('contractYears').value = '3';
       document.getElementById('paymentFrequency').value = 'Annual';
       document.getElementById('inflationWaiver').style.display = 'block';
+
+      // Reset one-off add-on products UI
+      selectedAddonProducts = {};
+      const addonList = document.getElementById('addonProductsList');
+      if (addonList) {
+        addonList.querySelectorAll('.addon-product-checkbox').forEach(cb => cb.checked = false);
+        addonList.querySelectorAll('.addon-product-qty').forEach(q => { q.value = ''; q.disabled = true; });
+      }
       
       // Reset form visibility and scroll to top
       updateSelectedFruitsDisplay();
