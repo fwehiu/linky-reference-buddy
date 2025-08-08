@@ -1144,6 +1144,17 @@
                   </div>
                 </div>
               </div>
+
+              <!-- One-off Add-on Products -->
+              <div class="card" id="oneOffAddOnsCard" style="margin-top: 20px;">
+                <div class="card-header">
+                  <h3 class="section-title">Add-on Products (one-off)</h3>
+                </div>
+                <div class="card-body" id="oneOffAddOnsSection">
+                  <p style="color: var(--secondary-color); margin: 0;">Select items and quantities. Applied in selected currency, not discounted. Counted in Year 1 only.</p>
+                  <div id="oneOffAddOnsList" class="checkbox-container" style="margin-top: 12px;"></div>
+                </div>
+              </div>
             </div>
           </div>
           
@@ -1294,6 +1305,7 @@
     let selectedFruitsData = {};
     let currentFruitSelection = { type: null, products: [], addOns: [] };
     let latestResult = null;
+    let addonProductSelections = {}; // name -> quantity
     const TEMPLATE_ID = '1sUO5ivgJELWlY6aMEWZ1vI5chfQo9ONCbw3Wcef5p4I';
 
     // Helper function to ensure a value is always an array
@@ -1388,7 +1400,8 @@
       populatePaymentFrequencies();
       updateRegionDiscountDisplay();
       updatePaymentDiscountDisplay();
-      
+      populateOneOffAddOns(); // Load one-off add-on products
+
       // Set default payment frequency to Annual after data is loaded
       if (data.paymentFrequencies && data.paymentFrequencies['Annual']) {
         document.getElementById('paymentFrequency').value = 'Annual';
@@ -1577,6 +1590,64 @@
       
       sel.disabled = !hasOptions;
       updatePaymentDiscountDisplay();
+    }
+
+    // Populate One-off Add-on Products from data.oneOffAddOnItems
+    function populateOneOffAddOns() {
+      const list = document.getElementById('oneOffAddOnsList');
+      if (!list) return;
+      list.innerHTML = '';
+      const items = (data && Array.isArray(data.oneOffAddOnItems)) ? data.oneOffAddOnItems : [];
+      if (items.length === 0) {
+        list.innerHTML = '<p style="color: var(--secondary-color);">No add-on products available.</p>';
+        return;
+      }
+      items.forEach((it, idx) => {
+        const row = document.createElement('div');
+        row.className = 'checkbox-item';
+        const id = `oneoff_${idx}`;
+        row.innerHTML = `
+          <label class="checkbox-label" for="${id}">
+            <input type="checkbox" id="${id}" data-name="${escapeHtml(it.name)}" class="oneoff-check">
+            ${escapeHtml(it.name)}
+          </label>
+          <div class="tonnage-input" style="margin-left: 28px; display:none;">
+            <input type="number" class="oneoff-qty" min="1" value="1" style="flex:0 0 100px;">
+            <span>units</span>
+          </div>
+        `;
+        list.appendChild(row);
+      });
+      list.addEventListener('change', onOneOffChange);
+      list.addEventListener('input', onOneOffQtyInput);
+    }
+
+    function onOneOffChange(e) {
+      const cb = e.target.closest('.oneoff-check');
+      if (!cb) return;
+      const container = cb.closest('.checkbox-item');
+      const qtyWrap = container.querySelector('.tonnage-input');
+      const name = cb.dataset.name || '';
+      if (cb.checked) {
+        qtyWrap.style.display = 'flex';
+        const qty = parseInt(qtyWrap.querySelector('.oneoff-qty').value, 10) || 1;
+        addonProductSelections[name] = qty;
+      } else {
+        qtyWrap.style.display = 'none';
+        delete addonProductSelections[name];
+      }
+    }
+
+    function onOneOffQtyInput(e) {
+      const qtyInput = e.target.closest('.oneoff-qty');
+      if (!qtyInput) return;
+      const container = qtyInput.closest('.checkbox-item');
+      const cb = container.querySelector('.oneoff-check');
+      if (!cb || !cb.checked) return;
+      const name = cb.dataset.name || '';
+      const qty = Math.max(1, parseInt(qtyInput.value, 10) || 1);
+      qtyInput.value = qty;
+      addonProductSelections[name] = qty;
     }
 
     // --- Event Handlers ---
@@ -1988,7 +2059,8 @@
         discretionaryDiscount: parseFloat(document.getElementById('discretionaryDiscount').value) || 0,
         contractYears: parseInt(document.getElementById('contractYears').value) || 1,
         companyName: document.getElementById('companyName').value,
-        salesContact: document.getElementById('salesContact').value
+        salesContact: document.getElementById('salesContact').value,
+        addonProducts: Object.keys(addonProductSelections).map(name => ({ name, quantity: addonProductSelections[name] }))
       };
       
       setCalculatingState(true);
@@ -2175,32 +2247,49 @@
         breakdownContainer.innerHTML = '<div class="text-gray-500 italic">No product breakdown available</div>';
       }
 
-      // Handle add-ons section
+      // Handle add-ons section (percentage add-ons + one-off add-on products)
       const addonsContainer = document.getElementById('addonsContainer');
       const addonItemsContainer = document.getElementById('addonItemsContainer');
       const addonsTotalElement = document.getElementById('addonsTotal');
       
-      if (result.totalAddOnCost > 0 && result.addOnCosts) {
+      const hasPctAddOns = result.totalAddOnCost > 0 && result.addOnCosts;
+      const hasOneOffAddOns = result.totalOneOffAddOnCost > 0 && result.oneOffAddOnCosts;
+
+      if (hasPctAddOns || hasOneOffAddOns) {
         // Show add-ons in the fruit breakdown section
         addonsContainer.style.display = 'block';
         
-        // Round the total add-on cost to nearest hundred
-        const roundedAddOnTotal = roundToNearestHundred(result.totalAddOnCost);
+        // Total = percentage add-ons + one-off add-ons
+        const roundedAddOnTotal = roundToNearestHundred((result.totalAddOnCost || 0) + (result.totalOneOffAddOnCost || 0));
         addonsTotalElement.textContent = formatCurrency(roundedAddOnTotal, result.currency);
         
         addonItemsContainer.innerHTML = '';
-        for (const [addonName, cost] of Object.entries(result.addOnCosts)) {
-          if (cost > 0) {
-            // Round each add-on cost to nearest hundred
-            const roundedCost = roundToNearestHundred(cost);
-            
-            const addonItem = document.createElement('div');
-            addonItem.className = 'addon-item';
-            addonItem.innerHTML = `
-              <span class="addon-name">${addonName}</span>
-              <span class="addon-price">${formatCurrency(roundedCost, result.currency)}</span>
-            `;
-            addonItemsContainer.appendChild(addonItem);
+        if (hasPctAddOns) {
+          for (const [addonName, cost] of Object.entries(result.addOnCosts)) {
+            if (cost > 0) {
+              const roundedCost = roundToNearestHundred(cost);
+              const addonItem = document.createElement('div');
+              addonItem.className = 'addon-item';
+              addonItem.innerHTML = `
+                <span class="addon-name">${addonName}</span>
+                <span class="addon-price">${formatCurrency(roundedCost, result.currency)}</span>
+              `;
+              addonItemsContainer.appendChild(addonItem);
+            }
+          }
+        }
+        if (hasOneOffAddOns) {
+          for (const [nm, cost] of Object.entries(result.oneOffAddOnCosts)) {
+            if (cost > 0) {
+              const roundedCost = roundToNearestHundred(cost);
+              const hwItem = document.createElement('div');
+              hwItem.className = 'addon-item';
+              hwItem.innerHTML = `
+                <span class="addon-name">${nm} (one-off)</span>
+                <span class="addon-price">${formatCurrency(roundedCost, result.currency)}</span>
+              `;
+              addonItemsContainer.appendChild(hwItem);
+            }
           }
         }
       } else {
