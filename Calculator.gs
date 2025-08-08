@@ -279,9 +279,11 @@ function getData() {
       const maxLen = Math.max(oneOffNames.length, oneOffPrices.length);
       for (var i = 0; i < maxLen; i++) {
         const nm = String(oneOffNames[i] || '').trim();
-        const pr = parseFloat(oneOffPrices[i]);
-        if (nm && !isNaN(pr) && isFinite(pr)) {
-          oneOffAddOnProducts.push({ name: nm, price: pr });
+        const prRaw = oneOffPrices[i];
+        const prSanitized = parseFloat(String(prRaw === undefined ? '' : prRaw).replace(/[^0-9.-]+/g, ''));
+        if (nm) {
+          const priceVal = (!isNaN(prSanitized) && isFinite(prSanitized)) ? prSanitized : 0;
+          oneOffAddOnProducts.push({ name: nm, price: priceVal });
         }
       }
     } catch (e) {
