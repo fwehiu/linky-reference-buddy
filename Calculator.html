@@ -1129,14 +1129,19 @@
                 <div id="selectedFruitsContainer" class="selected-fruits"></div>
               </div>
               
-              <!-- Camera options removed per requirements -->
-              </div>
-
-              <!-- One-off Add-on Products (from Base Rates V/W) -->
-              <div id="addonProductsSection" style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed var(--border-color);">
-                <label>Add-on Products (one-off):</label>
-                <div id="addonProductsList" class="checkbox-container">
-                  <!-- Populated dynamically -->
+              <!-- Camera Options (for Packer only) -->
+              <div id="cameraOptions" style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed var(--border-color); display: none;">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="cameraRental"> Topdown Lease (Camera + Lights) USD
+                  <span class="badge badge-warning">Hardware</span>
+                </label>
+                
+                <div id="cameraCountContainer" style="margin-left: 28px; margin-top: 10px; display: none;">
+                  <label for="cameraCount">Number of Cameras:</label>
+                  <div class="tonnage-input">
+                    <input type="number" id="cameraCount" min="1" value="1">
+                    <span>units</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1287,7 +1292,6 @@
     // --- Global Variables & Helpers ---
     let data = null;
     let selectedFruitsData = {};
-    let selectedAddonProducts = {};
     let currentFruitSelection = { type: null, products: [], addOns: [] };
     let latestResult = null;
     const TEMPLATE_ID = '1sUO5ivgJELWlY6aMEWZ1vI5chfQo9ONCbw3Wcef5p4I';
@@ -1345,7 +1349,7 @@
       document.getElementById('fruitType').addEventListener('change', handleFruitTypeChange);
       document.getElementById('addFruitButton').addEventListener('click', handleAddFruit);
       document.getElementById('calculateButton').addEventListener('click', handleCalculate);
-      
+      document.getElementById('cameraRental').addEventListener('change', toggleCameraCount);
       document.getElementById('discretionaryDiscount').addEventListener('input', checkDiscretionaryDiscount);
       document.getElementById('region').addEventListener('change', updateRegionDiscountDisplay);
       document.getElementById('paymentFrequency').addEventListener('change', updatePaymentDiscountDisplay);
@@ -1371,7 +1375,7 @@
       
       if (!data?.growerTypes || !data?.packerTypes || !data?.regions || 
           !data?.currencies || !data?.paymentFrequencies || !data?.addOns || 
-          !data?.minimumPrices || 
+          !data?.tieredBulkDiscounts || !data?.minimumPrices || 
           data?.cameraRentalPriceNZD === undefined || data?.inflationRateDecimal === undefined) {
         onDataLoadError("Data object missing required properties. Check logs.");
         console.error("Missing properties:", data);
@@ -1384,77 +1388,11 @@
       populatePaymentFrequencies();
       updateRegionDiscountDisplay();
       updatePaymentDiscountDisplay();
-
-      // Populate one-off Add-on Products list (Base Rates V/W)
-      const list = document.getElementById('addonProductsList');
-      if (list) {
-        list.innerHTML = '';
-        const items = (data.oneOffAddOnProducts && data.oneOffAddOnProducts.length)
-          ? data.oneOffAddOnProducts
-          : (function(){
-              const names = Array.isArray(data.AddonProduct) ? data.AddonProduct : [];
-              const prices = Array.isArray(data.AddonProductPrice) ? data.AddonProductPrice : [];
-              const arr = [];
-              for (let i=0;i<Math.max(names.length, prices.length);i++){
-                const n = String(names[i]||'').trim();
-                const p = parseFloat(prices[i]);
-                if (n && !isNaN(p) && isFinite(p)) arr.push({ name: n, priceNZD: p });
-              }
-              return arr;
-            })();
-        items.forEach(item => {
-          const row = document.createElement('div');
-          row.className = 'checkbox-item';
-
-          const label = document.createElement('label');
-          label.className = 'checkbox-label';
-
-          const cb = document.createElement('input');
-          cb.type = 'checkbox';
-          cb.className = 'addon-product-checkbox';
-          cb.dataset.name = item.name;
-          label.appendChild(cb);
-          label.appendChild(document.createTextNode(` ${item.name} (${(item.priceNZD).toLocaleString()} NZD per unit)`));
-
-          const qtyWrap = document.createElement('div');
-          qtyWrap.className = 'tonnage-input';
-          qtyWrap.style.marginLeft = '28px';
-
-          const qty = document.createElement('input');
-          qty.type = 'number';
-          qty.min = '1';
-          qty.placeholder = 'Qty';
-          qty.className = 'addon-product-qty';
-          qty.disabled = true;
-
-          qtyWrap.appendChild(qty);
-          const unitsSpan = document.createElement('span');
-          unitsSpan.textContent = 'units';
-          qtyWrap.appendChild(unitsSpan);
-
-          cb.addEventListener('change', () => {
-            if (cb.checked) {
-              qty.disabled = false;
-              if (!qty.value) qty.value = '1';
-              selectedAddonProducts[item.name] = parseInt(qty.value, 10) || 1;
-            } else {
-              qty.disabled = true;
-              qty.value = '';
-              delete selectedAddonProducts[item.name];
-            }
-          });
-          qty.addEventListener('input', () => {
-            const v = parseInt(qty.value, 10) || 0;
-            if (cb.checked) {
-              if (v > 0) selectedAddonProducts[item.name] = v;
-              else delete selectedAddonProducts[item.name];
-            }
-          });
-
-          row.appendChild(label);
-          row.appendChild(qtyWrap);
-          list.appendChild(row);
-        });
+      
+      // Set default payment frequency to Annual after data is loaded
+      if (data.paymentFrequencies && data.paymentFrequencies['Annual']) {
+        document.getElementById('paymentFrequency').value = 'Annual';
+        updatePaymentDiscountDisplay();
       }
     }
     
@@ -1648,7 +1586,7 @@
       
       populateFruitTypes();
       updateSelectedFruitsDisplay();
-      
+      toggleCameraOptions();
       updateRegionDiscountDisplay();
       updatePaymentDiscountDisplay();
     }
@@ -1976,6 +1914,23 @@
       span.textContent = dec > 0 ? `(${formatPercent(dec)} discount)` : '';
     }
     
+    function toggleCameraOptions() {
+      const cust = document.getElementById('customerType').value;
+      const optsDiv = document.getElementById('cameraOptions');
+      const cb = document.getElementById('cameraRental');
+      
+      optsDiv.style.display = cust === 'Packer' ? 'block' : 'none';
+      
+      if (cust !== 'Packer') {
+        cb.checked = false;
+        toggleCameraCount();
+      }
+    }
+    
+    function toggleCameraCount() {
+      document.getElementById('cameraCountContainer').style.display = 
+        document.getElementById('cameraRental').checked ? 'block' : 'none';
+    }
     
     function checkDiscretionaryDiscount() {
       const val = parseFloat(document.getElementById('discretionaryDiscount').value) || 0;
@@ -2028,11 +1983,12 @@
         region,
         currency,
         paymentFrequency,
+        includeCamera: document.getElementById('cameraRental').checked,
+        cameraCount: parseInt(document.getElementById('cameraCount').value) || 0,
         discretionaryDiscount: parseFloat(document.getElementById('discretionaryDiscount').value) || 0,
         contractYears: parseInt(document.getElementById('contractYears').value) || 1,
         companyName: document.getElementById('companyName').value,
-        salesContact: document.getElementById('salesContact').value,
-        addOnProducts: selectedAddonProducts
+        salesContact: document.getElementById('salesContact').value
       };
       
       setCalculatingState(true);
@@ -2258,6 +2214,18 @@
       
       let hasDiscounts = false;
       
+      // Bulk discount
+      if (result.bulkDiscountAmount > 0) {
+        hasDiscounts = true;
+        const roundedBulkDiscount = roundToNearestHundred(result.bulkDiscountAmount);
+        const discountRow = createDiscountRow(
+          `Bulk Purchase Discount`,
+          -roundedBulkDiscount,
+          result.currency,
+          'discount-value'
+        );
+        discountsContainer.appendChild(discountRow);
+      }
       
       // Region discount
       if (result.regionDiscountAmount > 0) {
@@ -2298,6 +2266,18 @@
         discountsContainer.appendChild(discountRow);
       }
       
+      // Camera rental - Now displayed in the discounts section instead of add-ons
+      if (result.cameraRental > 0) {
+        hasDiscounts = true;
+        const roundedCameraRental = roundToNearestHundred(result.cameraRental);
+        const cameraRow = createDiscountRow(
+          `Camera Rental (${result.cameraCount} ${result.cameraCount > 1 ? 'cameras' : 'camera'})`,
+          roundedCameraRental,
+          result.currency,
+          'addon-value'
+        );
+        discountsContainer.appendChild(cameraRow);
+      }
       
       // No discounts fallback
       if (!hasDiscounts) {
@@ -2405,19 +2385,13 @@
       document.getElementById('selectedFruitsSection').classList.add('hidden');
       document.getElementById('discretionaryDiscount').value = '0';
       document.getElementById('discountWarning').style.display = 'none';
+      document.getElementById('cameraRental').checked = false;
+      document.getElementById('cameraCountContainer').style.display = 'none';
       
       // Reset to default values
       document.getElementById('contractYears').value = '3';
       document.getElementById('paymentFrequency').value = 'Annual';
       document.getElementById('inflationWaiver').style.display = 'block';
-
-      // Reset one-off add-on products UI
-      selectedAddonProducts = {};
-      const addonList = document.getElementById('addonProductsList');
-      if (addonList) {
-        addonList.querySelectorAll('.addon-product-checkbox').forEach(cb => cb.checked = false);
-        addonList.querySelectorAll('.addon-product-qty').forEach(q => { q.value = ''; q.disabled = true; });
-      }
       
       // Reset form visibility and scroll to top
       updateSelectedFruitsDisplay();
