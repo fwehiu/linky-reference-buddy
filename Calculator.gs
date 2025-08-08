@@ -270,22 +270,7 @@ function getData() {
         }
       });
     }
-
-    // One-off Add-on Products from Base Rates per Fruit Type (V7:V names, W7:W prices NZD)
-    var AddonProductPrice = baseRatesSheet.getRange('W7:W' + baseRatesSheet.getLastRow()).getValues().flat();
-    var AddonProduct = baseRatesSheet.getRange('V7:V').getValues().flat();
-
-    // Optional paired list with cleaned values
-    var oneOffAddOnProducts = [];
-    for (var i = 0; i < Math.max(AddonProduct.length, AddonProductPrice.length); i++) {
-      var n = String(AddonProduct[i] || '').trim();
-      var p = parseFloat(AddonProductPrice[i]);
-      if (n && !isNaN(p) && isFinite(p)) {
-        oneOffAddOnProducts.push({ name: n, priceNZD: p });
-      }
-    }
-
-    return { growerTypes: growerFruitTypes, packerTypes: packerFruitTypes, growerProducts: growerProducts, packerProducts: packerProducts, growerRates: growerRates, packerRates: packerRates, currencies: currencies, currencyRates: rates, regions: regions, growerRegionDiscounts: growerRegionDiscounts, packerRegionDiscounts: packerRegionDiscounts, paymentFrequencies: paymentFrequencies, tieredBulkDiscounts: tieredBulkDiscounts, addOns: addOns, cameraRentalPriceNZD: cameraRentalPriceNZD, inflationRateDecimal: inflationRateDecimal, minimumPrices: minimumPrices, AddonProduct: AddonProduct, AddonProductPrice: AddonProductPrice, oneOffAddOnProducts: oneOffAddOnProducts };
+    return { growerTypes: growerFruitTypes, packerTypes: packerFruitTypes, growerProducts: growerProducts, packerProducts: packerProducts, growerRates: growerRates, packerRates: packerRates, currencies: currencies, currencyRates: rates, regions: regions, growerRegionDiscounts: growerRegionDiscounts, packerRegionDiscounts: packerRegionDiscounts, paymentFrequencies: paymentFrequencies, tieredBulkDiscounts: tieredBulkDiscounts, addOns: addOns, cameraRentalPriceNZD: cameraRentalPriceNZD, inflationRateDecimal: inflationRateDecimal, minimumPrices: minimumPrices };
   } catch (e) { 
     Logger.log(`GetData Error: ${e}\n${e.stack}`); 
     return { error: `Data fetch failed: ${e.message}` }; 
@@ -631,30 +616,6 @@ function calculatePrice(formData) {
     Logger.log("=== ADD-ON CALCULATION END ===");
     Logger.log(`Final add-on costs (${currency}): ${JSON.stringify(addOnCosts)}`);
     Logger.log(`Total add-on cost (${currency}): ${totalAddOnCost}`);
-
-    // --- STEP 5B: One-off Add-on Products (from Base Rates V/W) ---
-    var selectedOneOffAddOns = formData.addOnProducts || {};
-    if (selectedOneOffAddOns && typeof selectedOneOffAddOns === 'object') {
-      var priceLookup = {};
-      if (data.oneOffAddOnProducts && data.oneOffAddOnProducts.length) {
-        data.oneOffAddOnProducts.forEach(function(item){ priceLookup[item.name] = item.priceNZD; });
-      } else if (data.AddonProduct && data.AddonProductPrice) {
-        for (var i = 0; i < Math.max(data.AddonProduct.length, data.AddonProductPrice.length); i++) {
-          var n = String(data.AddonProduct[i] || '').trim();
-          var p = parseFloat(data.AddonProductPrice[i]);
-          if (n && !isNaN(p) && isFinite(p)) priceLookup[n] = p;
-        }
-      }
-      for (var itemName in selectedOneOffAddOns) {
-        var units = parseFloat(selectedOneOffAddOns[itemName]) || 0;
-        if (units > 0 && priceLookup[itemName] !== undefined) {
-          var itemCostExact = units * priceLookup[itemName] * currencyRate;
-          var itemCostRounded = roundUpToNearestHundred(itemCostExact);
-          addOnCosts[itemName] = (addOnCosts[itemName] || 0) + itemCostRounded;
-          totalAddOnCost += itemCostRounded;
-        }
-      }
-    }
 
     // --- STEP 6: Round up the discount amounts and calculate final cost ---
     var roundedBulkDiscount = roundUpToNearestHundred(totalAppliedBulkDiscount);
