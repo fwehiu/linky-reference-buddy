@@ -1132,7 +1132,7 @@
               <!-- Camera Options (for Packer only) -->
               <div id="cameraOptions" style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed var(--border-color); display: none;">
                 <label class="checkbox-label">
-                  <input type="checkbox" id="cameraRental"> Topdown Lease (Camera + Lights) USD
+                  <input type="checkbox" id="cameraRental"> <span id="cameraLabelText">Topdown Lease (Camera + Lights)</span>
                   <span class="badge badge-warning">Hardware</span>
                 </label>
                 
@@ -1398,6 +1398,7 @@
       populateRegions();
       populateCurrencies();
       populatePaymentFrequencies();
+      updateCameraLabel();
       updateRegionDiscountDisplay();
       updatePaymentDiscountDisplay();
       populateOneOffAddOns(); // Load one-off add-on products
@@ -2002,6 +2003,13 @@
     function toggleCameraCount() {
       document.getElementById('cameraCountContainer').style.display = 
         document.getElementById('cameraRental').checked ? 'block' : 'none';
+    }
+
+    function updateCameraLabel() {
+      const el = document.getElementById('cameraLabelText');
+      if (!el) return;
+      const nm = (data && data.cameraHardwareName) ? data.cameraHardwareName : 'Hardware Rental';
+      el.textContent = nm;
     }
     
     function checkDiscretionaryDiscount() {

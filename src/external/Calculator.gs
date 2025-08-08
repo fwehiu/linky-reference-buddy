@@ -7,8 +7,8 @@
 const BULK_DISCOUNT_SHEET_NAME = 'Bulk Discounts';
 const BASE_RATES_SHEET_NAME = 'Base Rates per Fruit Type';
 const CAMERA_PRICE_CELL = 'E3';
+const CAMERA_NAME_CELL = 'E2';
 const INFLATION_RATE_CELL = 'D3';
-const MIN_PRICE_START_ROW = 6;
 const DOC_TEMPLATE_ID = '1sUO5ivgJELWlY6aMEWZ1vI5chfQo9ONCbw3Wcef5p4I';
 
 // --- Theme Colors ---
@@ -230,7 +230,14 @@ function getData() {
       }
     });
 
+    var cameraHardwareName = '';
     var cameraRentalPriceNZD = 0;
+    try {
+      const nameRaw = discountsSheet.getRange(CAMERA_NAME_CELL).getValue();
+      cameraHardwareName = String(nameRaw || '').trim();
+    } catch (e) {
+      cameraHardwareName = '';
+    }
     try {
       const raw = discountsSheet.getRange(CAMERA_PRICE_CELL).getValue();
       cameraRentalPriceNZD = parseFloat(raw);
@@ -295,7 +302,7 @@ function getData() {
       Logger.log('One-off add-on load error: ' + e);
     }
 
-    return { growerTypes: growerFruitTypes, packerTypes: packerFruitTypes, growerProducts: growerProducts, packerProducts: packerProducts, growerRates: growerRates, packerRates: packerRates, currencies: currencies, currencyRates: rates, regions: regions, growerRegionDiscounts: growerRegionDiscounts, packerRegionDiscounts: packerRegionDiscounts, paymentFrequencies: paymentFrequencies, tieredBulkDiscounts: tieredBulkDiscounts, addOns: addOns, cameraRentalPriceNZD: cameraRentalPriceNZD, inflationRateDecimal: inflationRateDecimal, minimumPrices: minimumPrices, oneOffAddOnItems: oneOffAddOnItems };
+    return { growerTypes: growerFruitTypes, packerTypes: packerFruitTypes, growerProducts: growerProducts, packerProducts: packerProducts, growerRates: growerRates, packerRates: packerRates, currencies: currencies, currencyRates: rates, regions: regions, growerRegionDiscounts: growerRegionDiscounts, packerRegionDiscounts: packerRegionDiscounts, paymentFrequencies: paymentFrequencies, tieredBulkDiscounts: tieredBulkDiscounts, addOns: addOns, cameraHardwareName: cameraHardwareName, cameraRentalPriceNZD: cameraRentalPriceNZD, inflationRateDecimal: inflationRateDecimal, minimumPrices: minimumPrices, oneOffAddOnItems: oneOffAddOnItems };
   } catch (e) { 
     Logger.log(`GetData Error: ${e}\n${e.stack}`); 
     return { error: `Data fetch failed: ${e.message}` }; 
