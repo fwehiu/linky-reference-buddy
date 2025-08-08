@@ -1082,6 +1082,24 @@
               </div>
             </div>
           </div>
+
+          <!-- Add-on Products Card (One-off, quantity-based) -->
+          <div class="card">
+            <div class="card-header">
+              <svg class="card-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="16"></line>
+                <line x1="8" y1="12" x2="16" y2="12"></line>
+              </svg>
+              <h2 class="section-title">Add-on Products</h2>
+            </div>
+            <div class="card-body">
+              <div id="oneOffAddOnsContainer">
+                <p class="text-gray-600">No add-ons available.</p>
+              </div>
+              <p style="margin-top:8px; color: var(--secondary-color); font-size: 0.9rem;">Note: Add-on products are one-off charges applied only in Year 1.</p>
+            </div>
+          </div>
           
           <div class="info-callout">
             <p><strong>Why choose Hectre?</strong> Our solutions help maximize productivity and increase profit by optimizing your fruit operations with industry-leading technology.</p>
@@ -1132,7 +1150,7 @@
               <!-- Camera Options (for Packer only) -->
               <div id="cameraOptions" style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed var(--border-color); display: none;">
                 <label class="checkbox-label">
-                  <input type="checkbox" id="cameraRental"> Topdown Lease (Camera + Lights) USD
+                  <input type="checkbox" id="cameraRental"> Camera Rental
                   <span class="badge badge-warning">Hardware</span>
                 </label>
                 
@@ -1360,6 +1378,29 @@
       document.getElementById('selectedFruitsContainer').addEventListener('change', handleTonnageAddonChange);
       document.getElementById('exportDocButton').addEventListener('click', handleExportDoc);
       document.getElementById('resetButton').addEventListener('click', resetCalculator);
+    }
+
+    // Render one-off add-on products list
+    function renderOneOffAddOns(items) {
+      const container = document.getElementById('oneOffAddOnsContainer');
+      container.innerHTML = '';
+      if (!items || items.length === 0) {
+        container.innerHTML = '<p class="text-gray-600">No add-ons available.</p>';
+        return;
+      }
+      items.forEach((it, idx) => {
+        const row = document.createElement('div');
+        row.className = 'result-row';
+        const label = document.createElement('div');
+        label.className = 'result-label';
+        label.textContent = String(it.name || '').trim();
+        const value = document.createElement('div');
+        value.className = 'result-value';
+        value.innerHTML = `<input type="number" min="0" value="0" data-name="${(String(it.name||'').replace(/"/g,'&quot;'))}" class="oneoff-addon-qty" style="width:100px; margin-right:8px;"> <span style="font-size:0.9rem; color:var(--secondary-color);">Unit: ${Number(it.price||0)}</span>`;
+        row.appendChild(label);
+        row.appendChild(value);
+        container.appendChild(row);
+      });
     }
 
     // --- Data Loading Functions ---
@@ -1990,7 +2031,13 @@
         companyName: document.getElementById('companyName').value,
         salesContact: document.getElementById('salesContact').value
       };
-      
+
+      // Collect one-off add-on products with quantities > 0
+      const oneOffInputs = Array.from(document.querySelectorAll('.oneoff-addon-qty'));
+      formData.oneOffAddOns = oneOffInputs
+        .map(inp => ({ name: inp.dataset.name, qty: parseFloat(inp.value) || 0 }))
+        .filter(entry => entry.name && entry.qty > 0);
+
       setCalculatingState(true);
       
       // Call the Google Apps Script backend to calculate pricing
@@ -2175,7 +2222,7 @@
         breakdownContainer.innerHTML = '<div class="text-gray-500 italic">No product breakdown available</div>';
       }
 
-      // Handle add-ons section
+      // Handle add-ons section (includes one-off add-ons as well)
       const addonsContainer = document.getElementById('addonsContainer');
       const addonItemsContainer = document.getElementById('addonItemsContainer');
       const addonsTotalElement = document.getElementById('addonsTotal');
@@ -2207,7 +2254,7 @@
         // Hide add-ons section if no add-ons were selected
         addonsContainer.style.display = 'none';
       }
-      
+
       // Populate discounts
       const discountsContainer = document.getElementById('discountsContainer');
       discountsContainer.innerHTML = '';

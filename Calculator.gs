@@ -300,6 +300,7 @@ function calculatePrice(formData) {
     var contractYears = parseInt(formData.contractYears) || 1; 
     var companyName = formData.companyName || ""; 
     var salesContact = formData.salesContact || ""; 
+    var oneOffAddOns = formData.oneOffAddOns || []; 
     
     var fruitTypes = customerType === 'Grower' ? data.growerTypes : data.packerTypes; 
     var productsList = customerType === 'Grower' ? data.growerProducts : data.packerProducts; 
@@ -617,6 +618,30 @@ function calculatePrice(formData) {
     Logger.log(`Final add-on costs (${currency}): ${JSON.stringify(addOnCosts)}`);
     Logger.log(`Total add-on cost (${currency}): ${totalAddOnCost}`);
 
+    // --- STEP 5b: One-off Add-on Products (Q2:R2 names, Q3:R3 one-off prices) - Count in Year 1 only ---
+    var oneOffAddOnPriceMap = {};
+    (data.oneOffAddOnProducts || []).forEach(function(item){
+      if (item && item.name) { oneOffAddOnPriceMap[String(item.name).trim()] = parseFloat(item.price) || 0; }
+    });
+
+    var oneOffAddOnCosts = {};
+    var totalOneOffAddOnCost = 0;
+    (oneOffAddOns || []).forEach(function(entry){
+      var nm = String((entry && (entry.name || entry.Name)) || '').trim();
+      var qty = parseFloat(entry && (entry.qty || entry.quantity)) || 0;
+      if (!nm || qty <= 0) return;
+      var unitNZD = parseFloat(oneOffAddOnPriceMap[nm]) || 0;
+      var converted = unitNZD * qty * currencyRate;
+      var rounded = roundUpToNearestHundred(converted);
+      oneOffAddOnCosts[nm] = (oneOffAddOnCosts[nm] || 0) + rounded;
+      totalOneOffAddOnCost += rounded;
+    });
+    for (var aon in oneOffAddOnCosts) {
+      addOnCosts[aon] = (addOnCosts[aon] || 0) + oneOffAddOnCosts[aon];
+    }
+    totalAddOnCost += totalOneOffAddOnCost;
+    Logger.log(`One-off add-ons (${currency}): ${JSON.stringify(oneOffAddOnCosts)} | total: ${totalOneOffAddOnCost}`);
+
     // --- STEP 6: Round up the discount amounts and calculate final cost ---
     var roundedBulkDiscount = roundUpToNearestHundred(totalAppliedBulkDiscount);
     var roundedRegionDiscount = roundUpToNearestHundred(totalAppliedRegionDiscount);
@@ -637,16 +662,18 @@ function calculatePrice(formData) {
     
     Logger.log(`Final Calculation (${currency}): Products(${roundedProductsTotal}) + Add-ons(${totalAddOnCost}) + Camera(${roundedCameraRental}) - Bulk(${roundedBulkDiscount}) - Region(${roundedRegionDiscount}) - Payment(${roundedPaymentDiscount}) - Discretionary(${roundedDiscretionaryDiscount}) = ${finalYear1Cost}`);
 
-    // --- STEP 7: Calculate Multi-Year Values (using final cost) ---
-    var totalContractValue = finalYear1Cost * contractYears; 
+    // --- STEP 7: Calculate Multi-Year Values (Year 1 includes one-off add-ons once) ---
+    var recurringPerYear = finalYear1Cost - (typeof totalOneOffAddOnCost !== 'undefined' ? totalOneOffAddOnCost : 0);
+    var totalContractValue = (recurringPerYear * contractYears) + (typeof totalOneOffAddOnCost !== 'undefined' ? totalOneOffAddOnCost : 0);
     var inflationSavings = 0;
     
     if (contractYears > 1) { 
       let rateForProjection = sheetInflationRate; 
       if (rateForProjection > 0) { 
         const r_proj = 1 + rateForProjection; 
-        let projectedValueWithInflation = finalYear1Cost * (1 - Math.pow(r_proj, contractYears)) / (1 - r_proj); 
-        inflationSavings = Math.max(0, projectedValueWithInflation - totalContractValue); 
+        let projectedRecurring = recurringPerYear * (1 - Math.pow(r_proj, contractYears)) / (1 - r_proj); 
+        let projectedTotalWithInflation = projectedRecurring + (typeof totalOneOffAddOnCost !== 'undefined' ? totalOneOffAddOnCost : 0); 
+        inflationSavings = Math.max(0, projectedTotalWithInflation - totalContractValue); 
       } 
     }
 
@@ -711,6 +738,7 @@ function calculatePrice(formData) {
       cameraRental: roundedCameraRental, 
       addOnCosts: addOnCosts, 
       totalAddOnCost: totalAddOnCost, 
+      totalOneOffAddOnCost: (typeof totalOneOffAddOnCost !== 'undefined' ? totalOneOffAddOnCost : 0), 
       finalYear1Cost: finalYear1Cost, 
       totalContractValue: totalContractValue, 
       inflationSavings: inflationSavings, 
