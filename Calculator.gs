@@ -270,7 +270,26 @@ function getData() {
         }
       });
     }
-    return { growerTypes: growerFruitTypes, packerTypes: packerFruitTypes, growerProducts: growerProducts, packerProducts: packerProducts, growerRates: growerRates, packerRates: packerRates, currencies: currencies, currencyRates: rates, regions: regions, growerRegionDiscounts: growerRegionDiscounts, packerRegionDiscounts: packerRegionDiscounts, paymentFrequencies: paymentFrequencies, tieredBulkDiscounts: tieredBulkDiscounts, addOns: addOns, cameraRentalPriceNZD: cameraRentalPriceNZD, inflationRateDecimal: inflationRateDecimal, minimumPrices: minimumPrices };
+
+    // One-off Add-on Products from Base Rates per Fruit Type (Q2:R2 names, Q3:R3 prices)
+    var oneOffAddOnProducts = [];
+    try {
+      const oneOffNames = (baseRatesSheet.getRange('Q2:R2').getValues()[0] || []);
+      const oneOffPrices = (baseRatesSheet.getRange('Q3:R3').getValues()[0] || []);
+      const maxLen = Math.max(oneOffNames.length, oneOffPrices.length);
+      for (var i = 0; i < maxLen; i++) {
+        const nm = String(oneOffNames[i] || '').trim();
+        const pr = parseFloat(oneOffPrices[i]);
+        if (nm && !isNaN(pr) && isFinite(pr)) {
+          oneOffAddOnProducts.push({ name: nm, price: pr });
+        }
+      }
+    } catch (e) {
+      Logger.log('One-off Add-on parsing error: ' + e);
+      oneOffAddOnProducts = [];
+    }
+
+    return { growerTypes: growerFruitTypes, packerTypes: packerFruitTypes, growerProducts: growerProducts, packerProducts: packerProducts, growerRates: growerRates, packerRates: packerRates, currencies: currencies, currencyRates: rates, regions: regions, growerRegionDiscounts: growerRegionDiscounts, packerRegionDiscounts: packerRegionDiscounts, paymentFrequencies: paymentFrequencies, tieredBulkDiscounts: tieredBulkDiscounts, addOns: addOns, cameraRentalPriceNZD: cameraRentalPriceNZD, inflationRateDecimal: inflationRateDecimal, minimumPrices: minimumPrices, oneOffAddOnProducts: oneOffAddOnProducts };
   } catch (e) { 
     Logger.log(`GetData Error: ${e}\n${e.stack}`); 
     return { error: `Data fetch failed: ${e.message}` }; 
