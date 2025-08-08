@@ -274,9 +274,11 @@ function getData() {
     // One-off Add-on Products from Bulk Discounts!V7:V (name) and W7:W (price NZD)
     var oneOffAddOnItems = [];
     try {
-      // Use last row with data in column V to avoid trailing blanks
-      const lastRowV = discountsSheet.getRange('V:V').getValues().filter(String).length;
-      const numRows = Math.max(0, lastRowV - 6);
+      // Find last non-empty row in column V starting at row 7
+      const colVAll = discountsSheet.getRange(7, 22, discountsSheet.getMaxRows() - 6, 1).getValues();
+      let lastIdx = colVAll.length - 1;
+      while (lastIdx >= 0 && String(colVAll[lastIdx][0] || '').trim() === '') lastIdx--;
+      const numRows = Math.max(0, lastIdx + 1);
       if (numRows > 0) {
         // Column V = 22 (names), W = 23 (prices)
         const oneOffRange = discountsSheet.getRange(7, 22, numRows, 2).getValues();

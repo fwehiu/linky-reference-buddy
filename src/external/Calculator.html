@@ -1606,10 +1606,11 @@
         const row = document.createElement('div');
         row.className = 'checkbox-item';
         const id = `oneoff_${idx}`;
+        const priceText = (typeof it.priceNZD === 'number' && !isNaN(it.priceNZD)) ? ` — NZD ${Number(it.priceNZD).toLocaleString()}` : '';
         row.innerHTML = `
           <label class="checkbox-label" for="${id}">
             <input type="checkbox" id="${id}" data-name="${escapeHtml(it.name)}" class="oneoff-check">
-            ${escapeHtml(it.name)}
+            ${escapeHtml(it.name)}${priceText}
           </label>
           <div class="tonnage-input" style="margin-left: 28px; display:none;">
             <input type="number" class="oneoff-qty" min="1" value="1" style="flex:0 0 100px;">
