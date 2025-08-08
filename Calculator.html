@@ -1129,20 +1129,7 @@
                 <div id="selectedFruitsContainer" class="selected-fruits"></div>
               </div>
               
-              <!-- Camera Options (for Packer only) -->
-              <div id="cameraOptions" style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed var(--border-color); display: none;">
-                <label class="checkbox-label">
-                  <input type="checkbox" id="cameraRental"> Topdown Lease (Camera + Lights) USD
-                  <span class="badge badge-warning">Hardware</span>
-                </label>
-                
-                <div id="cameraCountContainer" style="margin-left: 28px; margin-top: 10px; display: none;">
-                  <label for="cameraCount">Number of Cameras:</label>
-                  <div class="tonnage-input">
-                    <input type="number" id="cameraCount" min="1" value="1">
-                    <span>units</span>
-                  </div>
-                </div>
+              <!-- Camera options removed per requirements -->
               </div>
 
               <!-- One-off Add-on Products (from Base Rates V/W) -->
@@ -1358,7 +1345,7 @@
       document.getElementById('fruitType').addEventListener('change', handleFruitTypeChange);
       document.getElementById('addFruitButton').addEventListener('click', handleAddFruit);
       document.getElementById('calculateButton').addEventListener('click', handleCalculate);
-      document.getElementById('cameraRental').addEventListener('change', toggleCameraCount);
+      
       document.getElementById('discretionaryDiscount').addEventListener('input', checkDiscretionaryDiscount);
       document.getElementById('region').addEventListener('change', updateRegionDiscountDisplay);
       document.getElementById('paymentFrequency').addEventListener('change', updatePaymentDiscountDisplay);
@@ -1384,7 +1371,7 @@
       
       if (!data?.growerTypes || !data?.packerTypes || !data?.regions || 
           !data?.currencies || !data?.paymentFrequencies || !data?.addOns || 
-          !data?.tieredBulkDiscounts || !data?.minimumPrices || 
+          !data?.minimumPrices || 
           data?.cameraRentalPriceNZD === undefined || data?.inflationRateDecimal === undefined) {
         onDataLoadError("Data object missing required properties. Check logs.");
         console.error("Missing properties:", data);
@@ -1661,7 +1648,7 @@
       
       populateFruitTypes();
       updateSelectedFruitsDisplay();
-      toggleCameraOptions();
+      
       updateRegionDiscountDisplay();
       updatePaymentDiscountDisplay();
     }
@@ -1989,23 +1976,6 @@
       span.textContent = dec > 0 ? `(${formatPercent(dec)} discount)` : '';
     }
     
-    function toggleCameraOptions() {
-      const cust = document.getElementById('customerType').value;
-      const optsDiv = document.getElementById('cameraOptions');
-      const cb = document.getElementById('cameraRental');
-      
-      optsDiv.style.display = cust === 'Packer' ? 'block' : 'none';
-      
-      if (cust !== 'Packer') {
-        cb.checked = false;
-        toggleCameraCount();
-      }
-    }
-    
-    function toggleCameraCount() {
-      document.getElementById('cameraCountContainer').style.display = 
-        document.getElementById('cameraRental').checked ? 'block' : 'none';
-    }
     
     function checkDiscretionaryDiscount() {
       const val = parseFloat(document.getElementById('discretionaryDiscount').value) || 0;
@@ -2058,8 +2028,6 @@
         region,
         currency,
         paymentFrequency,
-        includeCamera: document.getElementById('cameraRental').checked,
-        cameraCount: parseInt(document.getElementById('cameraCount').value) || 0,
         discretionaryDiscount: parseFloat(document.getElementById('discretionaryDiscount').value) || 0,
         contractYears: parseInt(document.getElementById('contractYears').value) || 1,
         companyName: document.getElementById('companyName').value,
@@ -2290,18 +2258,6 @@
       
       let hasDiscounts = false;
       
-      // Bulk discount
-      if (result.bulkDiscountAmount > 0) {
-        hasDiscounts = true;
-        const roundedBulkDiscount = roundToNearestHundred(result.bulkDiscountAmount);
-        const discountRow = createDiscountRow(
-          `Bulk Purchase Discount`,
-          -roundedBulkDiscount,
-          result.currency,
-          'discount-value'
-        );
-        discountsContainer.appendChild(discountRow);
-      }
       
       // Region discount
       if (result.regionDiscountAmount > 0) {
@@ -2342,18 +2298,6 @@
         discountsContainer.appendChild(discountRow);
       }
       
-      // Camera rental - Now displayed in the discounts section instead of add-ons
-      if (result.cameraRental > 0) {
-        hasDiscounts = true;
-        const roundedCameraRental = roundToNearestHundred(result.cameraRental);
-        const cameraRow = createDiscountRow(
-          `Camera Rental (${result.cameraCount} ${result.cameraCount > 1 ? 'cameras' : 'camera'})`,
-          roundedCameraRental,
-          result.currency,
-          'addon-value'
-        );
-        discountsContainer.appendChild(cameraRow);
-      }
       
       // No discounts fallback
       if (!hasDiscounts) {
@@ -2461,8 +2405,6 @@
       document.getElementById('selectedFruitsSection').classList.add('hidden');
       document.getElementById('discretionaryDiscount').value = '0';
       document.getElementById('discountWarning').style.display = 'none';
-      document.getElementById('cameraRental').checked = false;
-      document.getElementById('cameraCountContainer').style.display = 'none';
       
       // Reset to default values
       document.getElementById('contractYears').value = '3';
