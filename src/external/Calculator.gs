@@ -9,6 +9,8 @@ const BASE_RATES_SHEET_NAME = 'Base Rates per Fruit Type';
 const CAMERA_PRICE_CELL = 'E3';
 const CAMERA_NAME_CELL = 'E2';
 const INFLATION_RATE_CELL = 'D3';
+const MIN_PRICE_START_ROW = 6;
+const min_price_start_row = MIN_PRICE_START_ROW;
 const DOC_TEMPLATE_ID = '1sUO5ivgJELWlY6aMEWZ1vI5chfQo9ONCbw3Wcef5p4I';
 
 // --- Theme Colors ---
