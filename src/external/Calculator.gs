@@ -7,10 +7,8 @@
 const BULK_DISCOUNT_SHEET_NAME = 'Bulk Discounts';
 const BASE_RATES_SHEET_NAME = 'Base Rates per Fruit Type';
 const CAMERA_PRICE_CELL = 'E3';
-const CAMERA_NAME_CELL = 'E2';
 const INFLATION_RATE_CELL = 'D3';
 const MIN_PRICE_START_ROW = 6;
-const min_price_start_row = MIN_PRICE_START_ROW;
 const DOC_TEMPLATE_ID = '1sUO5ivgJELWlY6aMEWZ1vI5chfQo9ONCbw3Wcef5p4I';
 
 // --- Theme Colors ---
@@ -232,14 +230,7 @@ function getData() {
       }
     });
 
-    var cameraHardwareName = '';
     var cameraRentalPriceNZD = 0;
-    try {
-      const nameRaw = discountsSheet.getRange(CAMERA_NAME_CELL).getValue();
-      cameraHardwareName = String(nameRaw || '').trim();
-    } catch (e) {
-      cameraHardwareName = '';
-    }
     try {
       const raw = discountsSheet.getRange(CAMERA_PRICE_CELL).getValue();
       cameraRentalPriceNZD = parseFloat(raw);
@@ -279,32 +270,7 @@ function getData() {
         }
       });
     }
-
-    // One-off Add-on Products from Bulk Discounts!V7:V (name) and W7:W (price NZD)
-    var oneOffAddOnItems = [];
-    try {
-      // Find last non-empty row in column V starting at row 7
-      const colVAll = discountsSheet.getRange(7, 22, discountsSheet.getMaxRows() - 6, 1).getValues();
-      let lastIdx = colVAll.length - 1;
-      while (lastIdx >= 0 && String(colVAll[lastIdx][0] || '').trim() === '') lastIdx--;
-      const numRows = Math.max(0, lastIdx + 1);
-      if (numRows > 0) {
-        // Column V = 22 (names), W = 23 (prices)
-        const oneOffRange = discountsSheet.getRange(7, 22, numRows, 2).getValues();
-        oneOffRange.forEach(row => {
-          const name = String(row[0] || '').trim();
-          const priceRaw = row[1];
-          const priceNZD = parseFloat(String(priceRaw).toString().replace(/[^0-9.-]+/g, ''));
-          if (name && !isNaN(priceNZD) && isFinite(priceNZD)) {
-            oneOffAddOnItems.push({ name: name, priceNZD: priceNZD });
-          }
-        });
-      }
-    } catch (e) {
-      Logger.log('One-off add-on load error: ' + e);
-    }
-
-    return { growerTypes: growerFruitTypes, packerTypes: packerFruitTypes, growerProducts: growerProducts, packerProducts: packerProducts, growerRates: growerRates, packerRates: packerRates, currencies: currencies, currencyRates: rates, regions: regions, growerRegionDiscounts: growerRegionDiscounts, packerRegionDiscounts: packerRegionDiscounts, paymentFrequencies: paymentFrequencies, tieredBulkDiscounts: tieredBulkDiscounts, addOns: addOns, cameraHardwareName: cameraHardwareName, cameraRentalPriceNZD: cameraRentalPriceNZD, inflationRateDecimal: inflationRateDecimal, minimumPrices: minimumPrices, oneOffAddOnItems: oneOffAddOnItems };
+    return { growerTypes: growerFruitTypes, packerTypes: packerFruitTypes, growerProducts: growerProducts, packerProducts: packerProducts, growerRates: growerRates, packerRates: packerRates, currencies: currencies, currencyRates: rates, regions: regions, growerRegionDiscounts: growerRegionDiscounts, packerRegionDiscounts: packerRegionDiscounts, paymentFrequencies: paymentFrequencies, tieredBulkDiscounts: tieredBulkDiscounts, addOns: addOns, cameraRentalPriceNZD: cameraRentalPriceNZD, inflationRateDecimal: inflationRateDecimal, minimumPrices: minimumPrices };
   } catch (e) { 
     Logger.log(`GetData Error: ${e}\n${e.stack}`); 
     return { error: `Data fetch failed: ${e.message}` }; 
@@ -334,9 +300,6 @@ function calculatePrice(formData) {
     var contractYears = parseInt(formData.contractYears) || 1; 
     var companyName = formData.companyName || ""; 
     var salesContact = formData.salesContact || ""; 
-    var oneOffSelections = Array.isArray(formData.addonProducts)
-      ? formData.addonProducts.map(function(h){ return { name: String(h.name || '').trim(), quantity: parseInt(h.quantity, 10) || 0 }; })
-      : [];
     
     var fruitTypes = customerType === 'Grower' ? data.growerTypes : data.packerTypes; 
     var productsList = customerType === 'Grower' ? data.growerProducts : data.packerProducts; 
@@ -654,22 +617,6 @@ function calculatePrice(formData) {
     Logger.log(`Final add-on costs (${currency}): ${JSON.stringify(addOnCosts)}`);
     Logger.log(`Total add-on cost (${currency}): ${totalAddOnCost}`);
 
-    // --- STEP 5.1: One-off Add-on Products (currency conversion only; no discounts); round per item ---
-    var oneOffPriceIndex = {};
-    (data.oneOffAddOnItems || []).forEach(function(item){ oneOffPriceIndex[item.name] = item.priceNZD; });
-    var oneOffAddOnCosts = {};
-    var totalOneOffAddOnCost = 0;
-    oneOffSelections.forEach(function(sel){
-      if (!sel.name || sel.quantity <= 0) return;
-      var priceNZD = oneOffPriceIndex[sel.name];
-      if (typeof priceNZD !== 'number') return;
-      var costConverted = priceNZD * sel.quantity * currencyRate;
-      var rounded = roundUpToNearestHundred(costConverted);
-      oneOffAddOnCosts[sel.name + ' (x' + sel.quantity + ')'] = rounded;
-      totalOneOffAddOnCost += rounded;
-    });
-    Logger.log(`One-off Add-ons total (${currency}): ${totalOneOffAddOnCost}, details: ${JSON.stringify(oneOffAddOnCosts)}`);
-
     // --- STEP 6: Round up the discount amounts and calculate final cost ---
     var roundedBulkDiscount = roundUpToNearestHundred(totalAppliedBulkDiscount);
     var roundedRegionDiscount = roundUpToNearestHundred(totalAppliedRegionDiscount);
@@ -679,7 +626,6 @@ function calculatePrice(formData) {
     Logger.log(`=== FINAL CALCULATION WITH ROUNDED VALUES (${currency}) ===`);
     Logger.log(`Products total (from rounded individual products): ${roundedProductsTotal}`);
     Logger.log(`Add-ons: ${totalAddOnCost} (calculated from rounded products)`);
-    Logger.log(`One-off Add-ons: ${totalOneOffAddOnCost}`);
     Logger.log(`Camera: ${cameraRentalCost} -> ${roundedCameraRental} (rounded up)`);
     Logger.log(`Bulk discount: ${totalAppliedBulkDiscount} -> ${roundedBulkDiscount} (rounded up)`);
     Logger.log(`Region discount: ${totalAppliedRegionDiscount} -> ${roundedRegionDiscount} (rounded up)`);
@@ -687,20 +633,19 @@ function calculatePrice(formData) {
     Logger.log(`Discretionary discount: ${totalAppliedDiscretionaryDiscount} -> ${roundedDiscretionaryDiscount} (rounded up)`);
     
     // --- Calculate Final Year 1 Cost using ROUNDED VALUES ---
-    var finalYear1Cost = roundedProductsTotal + totalAddOnCost + totalOneOffAddOnCost + roundedCameraRental - roundedBulkDiscount - roundedRegionDiscount - roundedPaymentDiscount - roundedDiscretionaryDiscount;
+    var finalYear1Cost = roundedProductsTotal + totalAddOnCost + roundedCameraRental - roundedBulkDiscount - roundedRegionDiscount - roundedPaymentDiscount - roundedDiscretionaryDiscount;
     
-    Logger.log(`Final Calculation (${currency}): Products(${roundedProductsTotal}) + Add-ons(${totalAddOnCost}) + One-off(${totalOneOffAddOnCost}) + Camera(${roundedCameraRental}) - Bulk(${roundedBulkDiscount}) - Region(${roundedRegionDiscount}) - Payment(${roundedPaymentDiscount}) - Discretionary(${roundedDiscretionaryDiscount}) = ${finalYear1Cost}`);
+    Logger.log(`Final Calculation (${currency}): Products(${roundedProductsTotal}) + Add-ons(${totalAddOnCost}) + Camera(${roundedCameraRental}) - Bulk(${roundedBulkDiscount}) - Region(${roundedRegionDiscount}) - Payment(${roundedPaymentDiscount}) - Discretionary(${roundedDiscretionaryDiscount}) = ${finalYear1Cost}`);
 
-    // --- STEP 7: Calculate Multi-Year Values (using final cost, exclude one-off from multiplier) ---
-    var annualRecurringCost = finalYear1Cost - totalOneOffAddOnCost; 
-    var totalContractValue = annualRecurringCost * contractYears + totalOneOffAddOnCost; 
+    // --- STEP 7: Calculate Multi-Year Values (using final cost) ---
+    var totalContractValue = finalYear1Cost * contractYears; 
     var inflationSavings = 0;
     
     if (contractYears > 1) { 
       let rateForProjection = sheetInflationRate; 
       if (rateForProjection > 0) { 
         const r_proj = 1 + rateForProjection; 
-        let projectedValueWithInflation = annualRecurringCost * (1 - Math.pow(r_proj, contractYears)) / (1 - r_proj); 
+        let projectedValueWithInflation = finalYear1Cost * (1 - Math.pow(r_proj, contractYears)) / (1 - r_proj); 
         inflationSavings = Math.max(0, projectedValueWithInflation - totalContractValue); 
       } 
     }
@@ -741,10 +686,6 @@ function calculatePrice(formData) {
     for (let aoName in addOnCosts) {
       discountsArray.push({ name: aoName, percentage: 0, amount: addOnCosts[aoName] });
     }
-    // One-off add-on products are positive amounts
-    for (let itemName in oneOffAddOnCosts) {
-      discountsArray.push({ name: itemName, percentage: 0, amount: oneOffAddOnCosts[itemName] });
-    }
 
     // Determine if discretionary discount requires approval (>20%)
     let requiresApproval = discretionaryDiscountCalcDecimal > 0.20;
@@ -770,8 +711,6 @@ function calculatePrice(formData) {
       cameraRental: roundedCameraRental, 
       addOnCosts: addOnCosts, 
       totalAddOnCost: totalAddOnCost, 
-      oneOffAddOnCosts: oneOffAddOnCosts,
-      totalOneOffAddOnCost: totalOneOffAddOnCost,
       finalYear1Cost: finalYear1Cost, 
       totalContractValue: totalContractValue, 
       inflationSavings: inflationSavings, 
@@ -874,21 +813,9 @@ function createDocReport(resultData, templateId) {
         addOnBreakdownString = addOnLines.join('\n');
       }
     }
-
-    // Create detailed one-off add-on breakdown
-    let oneOffAddOnBreakdownString = 'N/A';
-    if (resultData.oneOffAddOnCosts && Object.keys(resultData.oneOffAddOnCosts).length > 0) {
-      let hwLines = [];
-      hwLines.push(`Total One-off Add-ons: ${formatCurrencyValue(resultData.totalOneOffAddOnCost || 0)}`);
-      for (let nm in resultData.oneOffAddOnCosts) {
-        const cost = resultData.oneOffAddOnCosts[nm];
-        if (cost > 0) hwLines.push(`${nm}: ${formatCurrencyValue(cost)}`);
-      }
-      if (hwLines.length > 1) oneOffAddOnBreakdownString = hwLines.join('\n');
-    }
     
     // Calculate discount total: Products + Add-ons + Camera - Final Year 1 Cost
-    const discountTotal = roundedProductsTotal + (resultData.totalAddOnCost || 0) + (resultData.totalOneOffAddOnCost || 0) + (resultData.cameraRental || 0) - (resultData.finalYear1Cost || 0);
+    const discountTotal = roundedProductsTotal + (resultData.totalAddOnCost || 0) + (resultData.cameraRental || 0) - (resultData.finalYear1Cost || 0);
     
     // Determine camera information - use blank strings instead of "N/A"
     const cameraCount = resultData.cameraCount || 0;
@@ -906,7 +833,6 @@ function createDocReport(resultData, templateId) {
       '{{AddOnPlan}}': addOnPlanString,
       '{{ProductBreakdown}}': productBreakdownString,
       '{{AddOnBreakdown}}': addOnBreakdownString,
-      '{{OneOffAddOnBreakdown}}': oneOffAddOnBreakdownString,
       '{{DiscountTotal}}': formatCurrencyValue(discountTotal),
       '{{Region}}': resultData.region || 'N/A', 
       '{{Currency}}': currency, 
@@ -923,7 +849,6 @@ function createDocReport(resultData, templateId) {
       '{{DiscretionaryDiscountAmount}}': formatAmount(-resultData.discretionaryDiscountAmount), 
       '{{MinPriceAdjustment}}': formatAmount(resultData.totalMinPriceAdjustments), 
       '{{AddonTotal}}': formatCurrencyValue(resultData.totalAddOnCost), 
-      '{{OneOffAddOnTotal}}': formatCurrencyValue(resultData.totalOneOffAddOnCost || 0), 
       '{{CameraRental}}': formatAmount(resultData.cameraRental), 
       '{{CameraCount}}': cameraCountText,
       '{{CameraCost}}': cameraCostText,
