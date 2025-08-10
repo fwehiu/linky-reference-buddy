@@ -985,6 +985,10 @@
       border-top: 1px solid var(--border-color);
       background-color: var(--white-color);
     }
+
+    /* Two-column form grid for Client + Contract */
+    .form-two-col { display: grid; grid-template-columns: 1fr; gap: 30px; }
+    @media (min-width: 900px) { .form-two-col { grid-template-columns: 1fr 1fr; } }
   </style>
 </head>
 
@@ -1006,6 +1010,7 @@
       <div class="grid-container">
         <!-- Left Column - Client Information -->
         <div>
+          <div class="form-two-col" id="clientContractGrid">
           <!-- Client Information Card -->
           <div class="card">
             <div class="card-header">
@@ -1114,11 +1119,9 @@
             </div>
           </div>
           </div>
+          </div>
 
           
-          <div class="info-callout">
-            <p><strong>Why choose Hectre?</strong> Our solutions help maximize productivity and increase profit by optimizing your fruit operations with industry-leading technology.</p>
-          </div>
         </div>
         
         <!-- Right Column - Fruit Selection -->
