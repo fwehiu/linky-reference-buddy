@@ -2231,36 +2231,37 @@
         breakdownContainer.innerHTML = '<div class="text-gray-500 italic">No product breakdown available</div>';
       }
 
-      // Handle add-ons section (includes one-off add-ons as well)
+      // Handle add-ons section (recurring add-ons only; exclude one-off products)
       const addonsContainer = document.getElementById('addonsContainer');
       const addonItemsContainer = document.getElementById('addonItemsContainer');
       const addonsTotalElement = document.getElementById('addonsTotal');
       
-      if (result.totalAddOnCost > 0 && result.addOnCosts) {
+      const oneOffNamesSet = new Set(Object.keys(result.oneOffAddOnCosts || {}));
+      const recurringEntries = Object.entries(result.addOnCosts || {}).filter(([name, cost]) => cost > 0 && !oneOffNamesSet.has(name));
+      
+      if (recurringEntries.length > 0) {
         // Show add-ons in the fruit breakdown section
         addonsContainer.style.display = 'block';
         
-        // Round the total add-on cost to nearest hundred
-        const roundedAddOnTotal = roundToNearestHundred(result.totalAddOnCost);
+        // Round the total recurring add-on cost to nearest hundred
+        const totalRecurring = recurringEntries.reduce((sum, [, cost]) => sum + cost, 0);
+        const roundedAddOnTotal = roundToNearestHundred(totalRecurring);
         addonsTotalElement.textContent = formatCurrency(roundedAddOnTotal, result.currency);
         
         addonItemsContainer.innerHTML = '';
-        for (const [addonName, cost] of Object.entries(result.addOnCosts)) {
-          if (cost > 0) {
-            // Round each add-on cost to nearest hundred
-            const roundedCost = roundToNearestHundred(cost);
-            
-            const addonItem = document.createElement('div');
-            addonItem.className = 'addon-item';
-            addonItem.innerHTML = `
-              <span class="addon-name">${addonName}</span>
-              <span class="addon-price">${formatCurrency(roundedCost, result.currency)}</span>
-            `;
-            addonItemsContainer.appendChild(addonItem);
-          }
-        }
+        recurringEntries.forEach(([addonName, cost]) => {
+          // Round each recurring add-on cost to nearest hundred
+          const roundedCost = roundToNearestHundred(cost);
+          const addonItem = document.createElement('div');
+          addonItem.className = 'addon-item';
+          addonItem.innerHTML = `
+            <span class="addon-name">${addonName}</span>
+            <span class="addon-price">${formatCurrency(roundedCost, result.currency)}</span>
+          `;
+          addonItemsContainer.appendChild(addonItem);
+        });
       } else {
-        // Hide add-ons section if no add-ons were selected
+        // Hide add-ons section if no recurring add-ons
         addonsContainer.style.display = 'none';
       }
 
