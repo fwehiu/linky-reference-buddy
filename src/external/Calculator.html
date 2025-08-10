@@ -1559,12 +1559,17 @@
       
       if (!data || !data.addOns) return applicableAddOns;
       
+      // Build a set of one-off add-on names to exclude from recurring add-ons UI
+      const oneOffNamesSet = new Set(((data && data.oneOffAddOnProducts) || []).map(i => String(i.name || '').trim()));
+      
       for (const addonName in data.addOns) {
+        const nameTrim = String(addonName || '').trim();
+        if (oneOffNamesSet.has(nameTrim)) continue; // exclude one-off items from recurring list
         const addonDetails = data.addOns[addonName];
         
         if (addonDetails && addonDetails[productName] !== undefined) {
           applicableAddOns.push({
-            name: addonName,
+            name: nameTrim,
             markup: addonDetails[productName]
           });
         }

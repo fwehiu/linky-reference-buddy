@@ -571,6 +571,9 @@ function calculatePrice(formData) {
 
     Logger.log(`=== ADD-ON CALCULATION START (${currency}) - Using ROUNDED product prices ===`);
 
+    // Exclude one-off add-on products from recurring add-on calculations
+    const oneOffNamesSet = new Set(((data && data.oneOffAddOnProducts) || []).map(p => String(p.name || '').trim()));
+
     for (let fruitType in selectedAddOnsByFruit) {
       let selectedAddOns = selectedAddOnsByFruit[fruitType] || [];
       let productsData = selectedFruits[fruitType].products || {};
@@ -578,33 +581,38 @@ function calculatePrice(formData) {
       Logger.log(`Processing add-ons for ${fruitType}: ${JSON.stringify(selectedAddOns)}`);
       
       selectedAddOns.forEach(aoName => {
-        const details = data.addOns[aoName];
-        Logger.log(`Processing add-on: ${aoName}, details: ${JSON.stringify(details)}`);
+        const nameTrim = String(aoName || '').trim();
+        if (oneOffNamesSet.has(nameTrim)) {
+          Logger.log(`Skipping one-off add-on in recurring calc: ${nameTrim}`);
+          return; // skip one-off items from recurring add-ons
+        }
+        const details = data.addOns[nameTrim];
+        Logger.log(`Processing add-on: ${nameTrim}, details: ${JSON.stringify(details)}`);
         
         if (details) {
           let applicableRoundedProductsTotal = 0;
           
           // Calculate total of ROUNDED product prices for applicable products
           for (const pName in productsData) {
-            Logger.log(`Checking product ${pName} for add-on ${aoName}`);
+            Logger.log(`Checking product ${pName} for add-on ${nameTrim}`);
             if (details.hasOwnProperty(pName)) {
-              Logger.log(`Product ${pName} is applicable for add-on ${aoName}`);
+              Logger.log(`Product ${pName} is applicable for add-on ${nameTrim}`);
               if (finalProductPricesConverted[fruitType] && finalProductPricesConverted[fruitType][pName]) {
                 const roundedProductPrice = finalProductPricesConverted[fruitType][pName]; // Already rounded
                 applicableRoundedProductsTotal += roundedProductPrice;
-                Logger.log(`Add-on ${aoName} - Product ${pName}: Rounded price ${roundedProductPrice} ${currency}, Running total: ${applicableRoundedProductsTotal} ${currency}`);
+                Logger.log(`Add-on ${nameTrim} - Product ${pName}: Rounded price ${roundedProductPrice} ${currency}, Running total: ${applicableRoundedProductsTotal} ${currency}`);
               }
             }
           }
 
-          Logger.log(`Total applicable rounded products value for ${aoName}: ${applicableRoundedProductsTotal} ${currency}`);
+          Logger.log(`Total applicable rounded products value for ${nameTrim}: ${applicableRoundedProductsTotal} ${currency}`);
 
           if (applicableRoundedProductsTotal > 0) {
             let markup = 0;
             for (const bp in details) {
               if (productsData.hasOwnProperty(bp)) {
                 markup = details[bp];
-                Logger.log(`Found markup for add-on ${aoName}: ${markup}`);
+                Logger.log(`Found markup for add-on ${nameTrim}: ${markup}`);
                 break;
               }
             }
@@ -613,10 +621,10 @@ function calculatePrice(formData) {
               // Calculate add-on cost as exact percentage markup of ROUNDED product prices
               const addonCostExact = applicableRoundedProductsTotal * markup;
               
-              Logger.log(`Add-on ${aoName} calculation (${currency}): Rounded Base=${applicableRoundedProductsTotal}, Markup=${markup} (${markup*100}%), Result=${addonCostExact}`);
+              Logger.log(`Add-on ${nameTrim} calculation (${currency}): Rounded Base=${applicableRoundedProductsTotal}, Markup=${markup} (${markup*100}%), Result=${addonCostExact}`);
               
               // Store exact values for internal calculations
-              exactAddOnCosts[aoName] = (exactAddOnCosts[aoName] || 0) + addonCostExact;
+              exactAddOnCosts[nameTrim] = (exactAddOnCosts[nameTrim] || 0) + addonCostExact;
             }
           }
         }
