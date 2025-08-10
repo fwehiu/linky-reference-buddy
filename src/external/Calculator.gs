@@ -286,7 +286,24 @@ function getData() {
     } catch (e) {
       Logger.log('One-off add-on read error: ' + e);
     }
-    return { growerTypes: growerFruitTypes, packerTypes: packerFruitTypes, growerProducts: growerProducts, packerProducts: packerProducts, growerRates: growerRates, packerRates: packerRates, currencies: currencies, currencyRates: rates, regions: regions, growerRegionDiscounts: growerRegionDiscounts, packerRegionDiscounts: packerRegionDiscounts, paymentFrequencies: paymentFrequencies, tieredBulkDiscounts: tieredBulkDiscounts, addOns: addOns, cameraRentalPriceNZD: cameraRentalPriceNZD, inflationRateDecimal: inflationRateDecimal, minimumPrices: minimumPrices, oneOffAddOnProducts: oneOffAddOnProducts };
+    
+    // Read rental add-on products from 'Base Rates per Fruit Type' T2:U2 (names) and T3:U3 (prices), USD per year
+    var rentalAddOnProducts = [];
+    try {
+      var rentalNamesRow = baseRatesSheet.getRange('T2:U2').getValues()[0] || [];
+      var rentalPricesRow = baseRatesSheet.getRange('T3:U3').getValues()[0] || [];
+      for (var j = 0; j < rentalNamesRow.length; j++) {
+        var rnm = String(rentalNamesRow[j] || '').trim();
+        var rprRaw = rentalPricesRow[j];
+        var rpr = parseFloat(String(rprRaw).toString().replace(/[^0-9.-]+/g, ''));
+        if (rnm) {
+          rentalAddOnProducts.push({ name: rnm, price: isNaN(rpr) ? 0 : rpr });
+        }
+      }
+    } catch (e) {
+      Logger.log('Rental add-on read error: ' + e);
+    }
+    return { growerTypes: growerFruitTypes, packerTypes: packerFruitTypes, growerProducts: growerProducts, packerProducts: packerProducts, growerRates: growerRates, packerRates: packerRates, currencies: currencies, currencyRates: rates, regions: regions, growerRegionDiscounts: growerRegionDiscounts, packerRegionDiscounts: packerRegionDiscounts, paymentFrequencies: paymentFrequencies, tieredBulkDiscounts: tieredBulkDiscounts, addOns: addOns, cameraRentalPriceNZD: cameraRentalPriceNZD, inflationRateDecimal: inflationRateDecimal, minimumPrices: minimumPrices, oneOffAddOnProducts: oneOffAddOnProducts, rentalAddOnProducts: rentalAddOnProducts };
   } catch (e) { 
     Logger.log(`GetData Error: ${e}\n${e.stack}`); 
     return { error: `Data fetch failed: ${e.message}` }; 
@@ -681,18 +698,40 @@ function calculatePrice(formData) {
       Logger.log('One-off add-on calc error: ' + e);
     }
 
-    var finalYear1Cost = baseYear1Cost + oneOffAddOnTotalUSD;
-    Logger.log(`Final Calculation (${currency}): Base(${baseYear1Cost}) + One-off(${oneOffAddOnTotalUSD}) = ${finalYear1Cost}`);
+    // Rental add-on products (USD per year), added last and repeated every year, no discounts
+    var rentalAddOnTotalUSD = 0;
+    var rentalAddOnBreakdown = {};
+    try {
+      var rentalSelections = Array.isArray(formData.rentalAddOns) ? formData.rentalAddOns : [];
+      var rentalCatalog = (data && data.rentalAddOnProducts) || [];
+      rentalSelections.forEach(function(sel) {
+        var nm = String(sel.name || '').trim();
+        var qty = parseInt(sel.qty, 10) || 0;
+        if (!nm || qty <= 0) return;
+        var catalogItem = rentalCatalog.find(function(it){ return String(it.name || '').trim() === nm; });
+        var unit = catalogItem && typeof catalogItem.price !== 'undefined' ? (parseFloat(catalogItem.price) || 0) : 0;
+        var subtotal = unit * qty;
+        if (subtotal > 0) {
+          rentalAddOnTotalUSD += subtotal;
+          rentalAddOnBreakdown[nm] = (rentalAddOnBreakdown[nm] || 0) + subtotal;
+        }
+      });
+    } catch (e) {
+      Logger.log('Rental add-on calc error: ' + e);
+    }
 
-    // --- STEP 7: Calculate Multi-Year Values (do not multiply one-off add-ons) ---
-    var totalContractValue = (baseYear1Cost * contractYears) + oneOffAddOnTotalUSD; 
+    var finalYear1Cost = baseYear1Cost + rentalAddOnTotalUSD + oneOffAddOnTotalUSD;
+    Logger.log(`Final Calculation (${currency}): Base(${baseYear1Cost}) + Rental(${rentalAddOnTotalUSD}) + One-off(${oneOffAddOnTotalUSD}) = ${finalYear1Cost}`);
+
+    // --- STEP 7: Calculate Multi-Year Values (do not multiply one-off add-ons; rentals recur each year) ---
+    var totalContractValue = ((baseYear1Cost + rentalAddOnTotalUSD) * contractYears) + oneOffAddOnTotalUSD; 
     var inflationSavings = 0;
     
     if (contractYears > 1) { 
       let rateForProjection = sheetInflationRate; 
       if (rateForProjection > 0) { 
         const r_proj = 1 + rateForProjection; 
-        let projectedValueWithInflation = baseYear1Cost * (1 - Math.pow(r_proj, contractYears)) / (1 - r_proj) + oneOffAddOnTotalUSD; 
+        let projectedValueWithInflation = (baseYear1Cost + rentalAddOnTotalUSD) * (1 - Math.pow(r_proj, contractYears)) / (1 - r_proj) + oneOffAddOnTotalUSD; 
         inflationSavings = Math.max(0, projectedValueWithInflation - totalContractValue); 
       } 
     }
@@ -764,6 +803,8 @@ function calculatePrice(formData) {
       totalAddOnCost: totalAddOnCost, 
       oneOffAddOnCosts: oneOffAddOnBreakdown,
       oneOffAddOnTotalUSD: oneOffAddOnTotalUSD,
+      rentalAddOnCosts: rentalAddOnBreakdown,
+      rentalAddOnTotalUSD: rentalAddOnTotalUSD,
       finalYear1Cost: finalYear1Cost, 
       totalContractValue: totalContractValue, 
       inflationSavings: inflationSavings, 
