@@ -1217,6 +1217,15 @@
           </div>
         </div>
         
+        <!-- One-off Add-on products breakdown -->
+        <div id="oneOffAddonsBreakdown" class="addons-section" style="display: none;">
+          <div class="addons-header">
+            <span>Add-on products</span>
+            <span class="total" id="oneOffAddonsTotal">$0.00</span>
+          </div>
+          <div id="oneOffAddonItems"></div>
+        </div>
+        
         <!-- Discounts Section -->
         <div style="margin-bottom: 25px;">
           <h3 class="result-section-title">Your Savings & Adjustments</h3>
@@ -2253,6 +2262,33 @@
       } else {
         // Hide add-ons section if no add-ons were selected
         addonsContainer.style.display = 'none';
+      }
+
+      // One-off add-on products breakdown (USD)
+      const oneOffSection = document.getElementById('oneOffAddonsBreakdown');
+      const oneOffItemsContainer = document.getElementById('oneOffAddonItems');
+      const oneOffTotalElement = document.getElementById('oneOffAddonsTotal');
+      if (oneOffSection && oneOffItemsContainer && oneOffTotalElement) {
+        if (result.oneOffAddOnTotalUSD > 0 && result.oneOffAddOnCosts) {
+          oneOffSection.style.display = 'block';
+          const roundedOneOffTotal = roundToNearestHundred(result.oneOffAddOnTotalUSD || 0);
+          oneOffTotalElement.textContent = formatCurrency(roundedOneOffTotal, 'USD');
+          oneOffItemsContainer.innerHTML = '';
+          for (const [name, cost] of Object.entries(result.oneOffAddOnCosts)) {
+            if (cost > 0) {
+              const roundedCost = roundToNearestHundred(cost);
+              const item = document.createElement('div');
+              item.className = 'addon-item';
+              item.innerHTML = `
+                <span class=\"addon-name\">${name}</span>
+                <span class=\"addon-price\">${formatCurrency(roundedCost, 'USD')}</span>
+              `;
+              oneOffItemsContainer.appendChild(item);
+            }
+          }
+        } else {
+          oneOffSection.style.display = 'none';
+        }
       }
 
       // Populate discounts
