@@ -2177,9 +2177,9 @@
         multiYearSection.style.display = 'block';
         singleYearSection.style.display = 'none';
         
-        document.getElementById('finalTotal').textContent = formatCurrency(result.finalYear1Cost, result.currency);
+        document.getElementById('finalTotal').textContent = formatCurrencyExact(result.finalYear1Cost, result.currency);
         document.getElementById('contractLength').textContent = `${years} Years`;
-        document.getElementById('totalContractValue').textContent = formatCurrency(result.totalContractValue || 0, result.currency);
+        document.getElementById('totalContractValue').textContent = formatCurrencyExact(result.totalContractValue || 0, result.currency);
         document.getElementById('inflationSavings').textContent = formatCurrency(result.inflationSavings || 0, result.currency);
         
         // Hide inflation savings if not applicable
@@ -2189,7 +2189,7 @@
         // Single year display
         multiYearSection.style.display = 'none';
         singleYearSection.style.display = 'flex';
-        document.getElementById('finalTotalSingle').textContent = formatCurrency(result.finalYear1Cost, result.currency);
+        document.getElementById('finalTotalSingle').textContent = formatCurrencyExact(result.finalYear1Cost, result.currency);
       }
       
       // Check if there are any minimum price adjustments applied
