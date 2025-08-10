@@ -1082,6 +1082,24 @@
               </div>
             </div>
           </div>
+          </div>
+
+          <!-- Add-on products (one-off) -->
+          <div class="card" id="oneOffAddOnsCard">
+            <div class="card-header">
+              <svg class="card-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="16"></line>
+                <line x1="8" y1="12" x2="16" y2="12"></line>
+              </svg>
+              <h2 class="section-title">Add-on products</h2>
+            </div>
+            <div class="card-body">
+              <div id="oneOffAddOnsContainer" class="checkbox-container">
+                <p>Loading add-on products...</p>
+              </div>
+            </div>
+          </div>
           
           <div class="info-callout">
             <p><strong>Why choose Hectre?</strong> Our solutions help maximize productivity and increase profit by optimizing your fruit operations with industry-leading technology.</p>
@@ -1294,6 +1312,7 @@
     let selectedFruitsData = {};
     let currentFruitSelection = { type: null, products: [], addOns: [] };
     let latestResult = null;
+    let oneOffAddOnSelections = {};
     const TEMPLATE_ID = '1sUO5ivgJELWlY6aMEWZ1vI5chfQo9ONCbw3Wcef5p4I';
 
     // Helper function to ensure a value is always an array
@@ -1360,6 +1379,8 @@
       document.getElementById('selectedFruitsContainer').addEventListener('change', handleTonnageAddonChange);
       document.getElementById('exportDocButton').addEventListener('click', handleExportDoc);
       document.getElementById('resetButton').addEventListener('click', resetCalculator);
+      const oneOffCont = document.getElementById('oneOffAddOnsContainer');
+      if (oneOffCont) { oneOffCont.addEventListener('change', handleOneOffAddOnChange); }
     }
 
     // --- Data Loading Functions ---
@@ -1388,6 +1409,7 @@
       populatePaymentFrequencies();
       updateRegionDiscountDisplay();
       updatePaymentDiscountDisplay();
+      renderOneOffAddOns();
       
       // Set default payment frequency to Annual after data is loaded
       if (data.paymentFrequencies && data.paymentFrequencies['Annual']) {
@@ -1577,6 +1599,71 @@
       
       sel.disabled = !hasOptions;
       updatePaymentDiscountDisplay();
+    }
+
+    // One-off Add-on Products UI
+    function renderOneOffAddOns() {
+      const cont = document.getElementById('oneOffAddOnsContainer');
+      if (!cont) return;
+      const list = (data && data.oneOffAddOnProducts) || [];
+      cont.innerHTML = '';
+      if (!list || list.length === 0) {
+        cont.innerHTML = '<p>No add-on products available.</p>';
+        return;
+      }
+      list.forEach((item, idx) => {
+        const name = (item && item.name) ? String(item.name) : '';
+        const price = (item && typeof item.price !== 'undefined') ? (parseFloat(item.price) || 0) : 0;
+        const id = `oneoff_${makeSafeId(name)}_${idx}`;
+        const row = document.createElement('div');
+        row.className = 'checkbox-item';
+        row.innerHTML = `
+          <label class="checkbox-label" for="${id}">
+            <input type="checkbox" id="${id}" data-oneoff="1" value="${name}">
+            ${name}
+            <span style="color:#6c757d; margin-left:6px;">(${formatCurrency(price, 'NZD')} each)</span>
+          </label>
+          <div style="margin-left:28px; margin-top:6px;">
+            <label for="${id}_qty" style="margin-bottom:4px;">Quantity</label>
+            <input type="number" min="0" step="1" id="${id}_qty" data-oneoff-qty-for="${id}" value="${oneOffAddOnSelections[name] || 0}" style="width:100px;">
+          </div>
+        `;
+        cont.appendChild(row);
+        const cb = document.getElementById(id);
+        const qtyInput = document.getElementById(`${id}_qty`);
+        const qtyVal = parseInt(oneOffAddOnSelections[name] || 0, 10);
+        cb.checked = qtyVal > 0;
+        qtyInput.disabled = !cb.checked;
+      });
+    }
+
+    function handleOneOffAddOnChange(e) {
+      const t = e.target;
+      if (t && t.matches('input[type="checkbox"][data-oneoff="1"]')) {
+        const name = t.value;
+        const qtyInput = document.getElementById(`${t.id}_qty`);
+        if (t.checked) {
+          qtyInput.disabled = false;
+          const existing = parseInt(oneOffAddOnSelections[name] || 0, 10) || 0;
+          if (existing <= 0) {
+            oneOffAddOnSelections[name] = 1;
+            qtyInput.value = 1;
+          }
+        } else {
+          oneOffAddOnSelections[name] = 0;
+          qtyInput.value = 0;
+          qtyInput.disabled = true;
+        }
+      } else if (t && t.matches('input[type="number"][data-oneoff-qty-for]')) {
+        const id = t.getAttribute('data-oneoff-qty-for');
+        const cb = document.getElementById(id);
+        if (!cb) return;
+        const name = cb.value;
+        const qty = parseInt(t.value, 10) || 0;
+        oneOffAddOnSelections[name] = Math.max(0, qty);
+        cb.checked = qty > 0;
+        t.disabled = !cb.checked && qty <= 0;
+      }
     }
 
     // --- Event Handlers ---
@@ -1990,6 +2077,13 @@
         companyName: document.getElementById('companyName').value,
         salesContact: document.getElementById('salesContact').value
       };
+      // Include one-off add-ons selections
+      const oneOffAddOns = [];
+      for (const [name, qty] of Object.entries(oneOffAddOnSelections)) {
+        const q = parseInt(qty, 10) || 0;
+        if (q > 0) oneOffAddOns.push({ name, qty: q });
+      }
+      formData.oneOffAddOns = oneOffAddOns;
       
       setCalculatingState(true);
       
