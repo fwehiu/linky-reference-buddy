@@ -2317,17 +2317,15 @@
       if (oneOffSection && oneOffItemsContainer && oneOffTotalElement) {
         if (result.oneOffAddOnTotalUSD > 0 && result.oneOffAddOnCosts) {
           oneOffSection.style.display = 'block';
-          const roundedOneOffTotal = roundToNearestHundred(result.oneOffAddOnTotalUSD || 0);
-          oneOffTotalElement.textContent = formatCurrency(roundedOneOffTotal, 'USD');
+          oneOffTotalElement.textContent = formatCurrency((result.oneOffAddOnTotalUSD || 0), 'USD');
           oneOffItemsContainer.innerHTML = '';
           for (const [name, cost] of Object.entries(result.oneOffAddOnCosts)) {
             if (cost > 0) {
-              const roundedCost = roundToNearestHundred(cost);
               const item = document.createElement('div');
               item.className = 'addon-item';
               item.innerHTML = `
                 <span class="addon-name">${name}</span>
-                <span class="addon-price">${formatCurrency(roundedCost, 'USD')}</span>
+                <span class="addon-price">${formatCurrency(cost, 'USD')}</span>
               `;
               oneOffItemsContainer.appendChild(item);
             }

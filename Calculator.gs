@@ -653,9 +653,9 @@ function calculatePrice(formData) {
       if (!nm || qty <= 0) return;
       var unitNZD = parseFloat(oneOffAddOnPriceMap[nm]) || 0;
       var converted = unitNZD * qty * currencyRate;
-      var rounded = roundUpToNearestHundred(converted);
-      oneOffAddOnCosts[nm] = (oneOffAddOnCosts[nm] || 0) + rounded;
-      totalOneOffAddOnCost += rounded;
+      // Do NOT round one-off add-ons; charge exact amount (added last, no discounts)
+      oneOffAddOnCosts[nm] = (oneOffAddOnCosts[nm] || 0) + converted;
+      totalOneOffAddOnCost += converted;
     });
     for (var aon in oneOffAddOnCosts) {
       addOnCosts[aon] = (addOnCosts[aon] || 0) + oneOffAddOnCosts[aon];
