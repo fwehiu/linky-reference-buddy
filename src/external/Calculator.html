@@ -1353,6 +1353,12 @@
         `${code} 0`; 
     }
     
+    // Exact currency formatter without rounding (used for one-off add-ons)
+    function formatCurrencyExact(val, code = 'USD') {
+      const num = (typeof val === 'number' && !isNaN(val)) ? val : parseFloat(val) || 0;
+      return `${code} ${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+    
     function makeSafeId(txt) { 
       return `id_${(typeof txt === 'string' ? txt : String(txt)).replace(/[^a-zA-Z0-9_]+/g, '_')}`; 
     }
@@ -2314,7 +2320,7 @@
       if (oneOffSection && oneOffItemsContainer && oneOffTotalElement) {
         if (result.oneOffAddOnTotalUSD > 0 && result.oneOffAddOnCosts) {
           oneOffSection.style.display = 'block';
-          oneOffTotalElement.textContent = formatCurrency((result.oneOffAddOnTotalUSD || 0), 'USD');
+          oneOffTotalElement.textContent = formatCurrencyExact((result.oneOffAddOnTotalUSD || 0), 'USD');
           oneOffItemsContainer.innerHTML = '';
           for (const [name, cost] of Object.entries(result.oneOffAddOnCosts)) {
             if (cost > 0) {
@@ -2322,7 +2328,7 @@
               item.className = 'addon-item';
               item.innerHTML = `
                 <span class="addon-name">${name}</span>
-                <span class="addon-price">${formatCurrency(cost, 'USD')}</span>
+                <span class="addon-price">${formatCurrencyExact(cost, 'USD')}</span>
               `;
               oneOffItemsContainer.appendChild(item);
             }
