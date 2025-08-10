@@ -270,7 +270,23 @@ function getData() {
         }
       });
     }
-    return { growerTypes: growerFruitTypes, packerTypes: packerFruitTypes, growerProducts: growerProducts, packerProducts: packerProducts, growerRates: growerRates, packerRates: packerRates, currencies: currencies, currencyRates: rates, regions: regions, growerRegionDiscounts: growerRegionDiscounts, packerRegionDiscounts: packerRegionDiscounts, paymentFrequencies: paymentFrequencies, tieredBulkDiscounts: tieredBulkDiscounts, addOns: addOns, cameraRentalPriceNZD: cameraRentalPriceNZD, inflationRateDecimal: inflationRateDecimal, minimumPrices: minimumPrices };
+    // Read one-off add-on products from 'Base Rates per Fruit Type' Q2:R2 (names) and Q3:R3 (prices), all USD
+    var oneOffAddOnProducts = [];
+    try {
+      var oneOffNamesRow = baseRatesSheet.getRange('Q2:R2').getValues()[0] || [];
+      var oneOffPricesRow = baseRatesSheet.getRange('Q3:R3').getValues()[0] || [];
+      for (var i = 0; i < oneOffNamesRow.length; i++) {
+        var nm = String(oneOffNamesRow[i] || '').trim();
+        var prRaw = oneOffPricesRow[i];
+        var pr = parseFloat(String(prRaw).toString().replace(/[^0-9.-]+/g, ''));
+        if (nm) {
+          oneOffAddOnProducts.push({ name: nm, price: isNaN(pr) ? 0 : pr });
+        }
+      }
+    } catch (e) {
+      Logger.log('One-off add-on read error: ' + e);
+    }
+    return { growerTypes: growerFruitTypes, packerTypes: packerFruitTypes, growerProducts: growerProducts, packerProducts: packerProducts, growerRates: growerRates, packerRates: packerRates, currencies: currencies, currencyRates: rates, regions: regions, growerRegionDiscounts: growerRegionDiscounts, packerRegionDiscounts: packerRegionDiscounts, paymentFrequencies: paymentFrequencies, tieredBulkDiscounts: tieredBulkDiscounts, addOns: addOns, cameraRentalPriceNZD: cameraRentalPriceNZD, inflationRateDecimal: inflationRateDecimal, minimumPrices: minimumPrices, oneOffAddOnProducts: oneOffAddOnProducts };
   } catch (e) { 
     Logger.log(`GetData Error: ${e}\n${e.stack}`); 
     return { error: `Data fetch failed: ${e.message}` }; 
@@ -632,20 +648,43 @@ function calculatePrice(formData) {
     Logger.log(`Payment discount: ${totalAppliedPaymentDiscount} -> ${roundedPaymentDiscount} (rounded up)`);
     Logger.log(`Discretionary discount: ${totalAppliedDiscretionaryDiscount} -> ${roundedDiscretionaryDiscount} (rounded up)`);
     
-    // --- Calculate Final Year 1 Cost using ROUNDED VALUES ---
-    var finalYear1Cost = roundedProductsTotal + totalAddOnCost + roundedCameraRental - roundedBulkDiscount - roundedRegionDiscount - roundedPaymentDiscount - roundedDiscretionaryDiscount;
+    // --- Calculate Final Year 1 Cost using ROUNDED VALUES (base, before one-off add-ons) ---
+    var baseYear1Cost = roundedProductsTotal + totalAddOnCost + roundedCameraRental - roundedBulkDiscount - roundedRegionDiscount - roundedPaymentDiscount - roundedDiscretionaryDiscount;
     
-    Logger.log(`Final Calculation (${currency}): Products(${roundedProductsTotal}) + Add-ons(${totalAddOnCost}) + Camera(${roundedCameraRental}) - Bulk(${roundedBulkDiscount}) - Region(${roundedRegionDiscount}) - Payment(${roundedPaymentDiscount}) - Discretionary(${roundedDiscretionaryDiscount}) = ${finalYear1Cost}`);
+    // One-off add-on products from Base Rates (USD), added last to Year 1 only with no discounts
+    var oneOffAddOnTotalUSD = 0;
+    var oneOffAddOnBreakdown = {};
+    try {
+      var oneOffSelections = Array.isArray(formData.oneOffAddOns) ? formData.oneOffAddOns : [];
+      var oneOffCatalog = (data && data.oneOffAddOnProducts) || [];
+      oneOffSelections.forEach(function(sel) {
+        var nm = String(sel.name || '').trim();
+        var qty = parseInt(sel.qty, 10) || 0;
+        if (!nm || qty <= 0) return;
+        var catalogItem = oneOffCatalog.find(function(it){ return String(it.name || '').trim() === nm; });
+        var unit = catalogItem && typeof catalogItem.price !== 'undefined' ? (parseFloat(catalogItem.price) || 0) : 0;
+        var subtotal = unit * qty;
+        if (subtotal > 0) {
+          oneOffAddOnTotalUSD += subtotal;
+          oneOffAddOnBreakdown[nm] = (oneOffAddOnBreakdown[nm] || 0) + subtotal;
+        }
+      });
+    } catch (e) {
+      Logger.log('One-off add-on calc error: ' + e);
+    }
 
-    // --- STEP 7: Calculate Multi-Year Values (using final cost) ---
-    var totalContractValue = finalYear1Cost * contractYears; 
+    var finalYear1Cost = baseYear1Cost + oneOffAddOnTotalUSD;
+    Logger.log(`Final Calculation (${currency}): Base(${baseYear1Cost}) + One-off(${oneOffAddOnTotalUSD}) = ${finalYear1Cost}`);
+
+    // --- STEP 7: Calculate Multi-Year Values (do not multiply one-off add-ons) ---
+    var totalContractValue = (baseYear1Cost * contractYears) + oneOffAddOnTotalUSD; 
     var inflationSavings = 0;
     
     if (contractYears > 1) { 
       let rateForProjection = sheetInflationRate; 
       if (rateForProjection > 0) { 
         const r_proj = 1 + rateForProjection; 
-        let projectedValueWithInflation = finalYear1Cost * (1 - Math.pow(r_proj, contractYears)) / (1 - r_proj); 
+        let projectedValueWithInflation = baseYear1Cost * (1 - Math.pow(r_proj, contractYears)) / (1 - r_proj) + oneOffAddOnTotalUSD; 
         inflationSavings = Math.max(0, projectedValueWithInflation - totalContractValue); 
       } 
     }
@@ -686,6 +725,10 @@ function calculatePrice(formData) {
     for (let aoName in addOnCosts) {
       discountsArray.push({ name: aoName, percentage: 0, amount: addOnCosts[aoName] });
     }
+    // Include one-off add-on products (USD) as positive amounts
+    for (let onm in oneOffAddOnBreakdown) {
+      discountsArray.push({ name: onm, percentage: 0, amount: oneOffAddOnBreakdown[onm] });
+    }
 
     // Determine if discretionary discount requires approval (>20%)
     let requiresApproval = discretionaryDiscountCalcDecimal > 0.20;
@@ -711,6 +754,8 @@ function calculatePrice(formData) {
       cameraRental: roundedCameraRental, 
       addOnCosts: addOnCosts, 
       totalAddOnCost: totalAddOnCost, 
+      oneOffAddOnCosts: oneOffAddOnBreakdown,
+      oneOffAddOnTotalUSD: oneOffAddOnTotalUSD,
       finalYear1Cost: finalYear1Cost, 
       totalContractValue: totalContractValue, 
       inflationSavings: inflationSavings, 
