@@ -2430,8 +2430,10 @@
             if (cost > 0) {
               const item = document.createElement('div');
               item.className = 'addon-item';
+              const qty = parseInt(oneOffAddOnSelections[name] || 0, 10);
+              const displayName = (qty && qty > 0) ? `${name} x${qty}` : name;
               item.innerHTML = `
-                <span class="addon-name">${name}</span>
+                <span class="addon-name">${displayName}</span>
                 <span class="addon-price">${formatCurrencyExact(cost, 'USD')}</span>
               `;
               oneOffItemsContainer.appendChild(item);
@@ -2455,8 +2457,14 @@
             if (cost > 0) {
               const item = document.createElement('div');
               item.className = 'addon-item';
+              const qty = parseInt(rentalAddOnSelections[name] || 0, 10);
+              let displayName = name;
+              if (qty && qty > 0) {
+                const idx = name.toLowerCase().lastIndexOf(' annual');
+                displayName = idx > -1 ? `${name.slice(0, idx)} x${qty}${name.slice(idx)}` : `${name} x${qty}`;
+              }
               item.innerHTML = `
-                <span class="addon-name">${name}</span>
+                <span class="addon-name">${displayName}</span>
                 <span class="addon-price">${formatCurrencyExact(cost, 'USD')}</span>
               `;
               rentalItemsContainer.appendChild(item);
