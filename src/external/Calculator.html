@@ -1422,6 +1422,8 @@
       document.getElementById('resetButton').addEventListener('click', resetCalculator);
       const oneOffCont = document.getElementById('oneOffAddOnsContainer');
       if (oneOffCont) { oneOffCont.addEventListener('change', handleOneOffAddOnChange); }
+      const rentalCont = document.getElementById('rentalAddOnsContainer');
+      if (rentalCont) { rentalCont.addEventListener('change', handleRentalAddOnChange); }
     }
 
     // --- Data Loading Functions ---
