@@ -1573,11 +1573,8 @@
       
        let prods = [];
        if (custType === 'Packer & Grower') {
-         if ((data.growerTypes || []).includes(fruitType)) {
-           prods = (data.growerProducts || []);
-         } else {
-           prods = (data.packerProducts || []);
-         }
+         const set = new Set([...(data.growerProducts || []), ...(data.packerProducts || [])]);
+         prods = Array.from(set);
        } else {
          prods = (custType === 'Grower' ? (data.growerProducts || []) : (data.packerProducts || []));
        }
