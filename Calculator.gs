@@ -290,8 +290,27 @@ function getData() {
       Logger.log('One-off Add-on parsing error: ' + e);
       oneOffAddOnProducts = [];
     }
+    // Rental Add-on Products from Base Rates per Fruit Type (T2:U2 names, T3:U3 prices)
+    var rentalAddOnProducts = [];
+    try {
+      const rentalNames = (baseRatesSheet.getRange('T2:U2').getValues()[0] || []);
+      const rentalPrices = (baseRatesSheet.getRange('T3:U3').getValues()[0] || []);
+      const maxLenR = Math.max(rentalNames.length, rentalPrices.length);
+      for (var j = 0; j < maxLenR; j++) {
+        const rnm = String(rentalNames[j] || '').trim();
+        const rRaw = rentalPrices[j];
+        const rSan = parseFloat(String(rRaw === undefined ? '' : rRaw).replace(/[^0-9.-]+/g, ''));
+        if (rnm) {
+          const rPrice = (!isNaN(rSan) && isFinite(rSan)) ? rSan : 0;
+          rentalAddOnProducts.push({ name: rnm, price: rPrice });
+        }
+      }
+    } catch (e) {
+      Logger.log('Rental Add-on parsing error: ' + e);
+      rentalAddOnProducts = [];
+    }
 
-    return { growerTypes: growerFruitTypes, packerTypes: packerFruitTypes, growerProducts: growerProducts, packerProducts: packerProducts, growerRates: growerRates, packerRates: packerRates, currencies: currencies, currencyRates: rates, regions: regions, growerRegionDiscounts: growerRegionDiscounts, packerRegionDiscounts: packerRegionDiscounts, paymentFrequencies: paymentFrequencies, tieredBulkDiscounts: tieredBulkDiscounts, addOns: addOns, cameraRentalPriceNZD: cameraRentalPriceNZD, inflationRateDecimal: inflationRateDecimal, minimumPrices: minimumPrices, oneOffAddOnProducts: oneOffAddOnProducts };
+    return { growerTypes: growerFruitTypes, packerTypes: packerFruitTypes, growerProducts: growerProducts, packerProducts: packerProducts, growerRates: growerRates, packerRates: packerRates, currencies: currencies, currencyRates: rates, regions: regions, growerRegionDiscounts: growerRegionDiscounts, packerRegionDiscounts: packerRegionDiscounts, paymentFrequencies: paymentFrequencies, tieredBulkDiscounts: tieredBulkDiscounts, addOns: addOns, cameraRentalPriceNZD: cameraRentalPriceNZD, inflationRateDecimal: inflationRateDecimal, minimumPrices: minimumPrices, oneOffAddOnProducts: oneOffAddOnProducts, rentalAddOnProducts: rentalAddOnProducts };
   } catch (e) { 
     Logger.log(`GetData Error: ${e}\n${e.stack}`); 
     return { error: `Data fetch failed: ${e.message}` }; 
@@ -322,6 +341,7 @@ function calculatePrice(formData) {
     var companyName = formData.companyName || ""; 
     var salesContact = formData.salesContact || ""; 
     var oneOffAddOns = formData.oneOffAddOns || []; 
+    var rentalAddOns = formData.rentalAddOns || []; 
     
     var combinedFruitTypes = Array.from(new Set([...(data.growerTypes || []), ...(data.packerTypes || [])])); 
     var fruitTypes = (customerType === 'Grower') ? data.growerTypes : (customerType === 'Packer') ? data.packerTypes : combinedFruitTypes; 
@@ -690,6 +710,27 @@ function calculatePrice(formData) {
     }
     totalAddOnCost += totalOneOffAddOnCost;
     Logger.log(`One-off add-ons (${currency}): ${JSON.stringify(oneOffAddOnCosts)} | total: ${totalOneOffAddOnCost}`);
+
+    // --- STEP 5c: Rental Add-on Products (T2:U3) - USD per year, convert for totals ---
+    var rentalAddOnPriceMap = {};
+    (data.rentalAddOnProducts || []).forEach(function(item){
+      if (item && item.name) { rentalAddOnPriceMap[String(item.name).trim()] = parseFloat(item.price) || 0; }
+    });
+
+    var rentalAddOnCosts = {};
+    var rentalAddOnTotalUSD = 0;
+    (rentalAddOns || []).forEach(function(entry){
+      var nm = String((entry && (entry.name || entry.Name)) || '').trim();
+      var qty = parseFloat(entry && (entry.qty || entry.quantity)) || 0;
+      if (!nm || qty <= 0) return;
+      var unitUSD = parseFloat(rentalAddOnPriceMap[nm]) || 0;
+      var subtotalUSD = unitUSD * qty;
+      rentalAddOnCosts[nm] = (rentalAddOnCosts[nm] || 0) + subtotalUSD;
+      rentalAddOnTotalUSD += subtotalUSD;
+    });
+    // Convert rental add-ons to selected currency for totals (UI will still show USD breakdown)
+    var rentalAddOnTotalConverted = rentalAddOnTotalUSD * currencyRate;
+    totalAddOnCost += rentalAddOnTotalConverted;
 
     // --- STEP 6: Round up the discount amounts and calculate final cost ---
     var roundedBulkDiscount = roundUpToNearestHundred(totalAppliedBulkDiscount);
