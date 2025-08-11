@@ -695,6 +695,7 @@ function calculatePrice(formData) {
 
     var oneOffAddOnCosts = {};
     var totalOneOffAddOnCost = 0;
+    var oneOffAddOnQtyMap = {};
     (oneOffAddOns || []).forEach(function(entry){
       var nm = String((entry && (entry.name || entry.Name)) || '').trim();
       var qty = parseFloat(entry && (entry.qty || entry.quantity)) || 0;
@@ -703,14 +704,18 @@ function calculatePrice(formData) {
       var converted = unitNZD * qty * currencyRate;
       // Do NOT round one-off add-ons; charge exact amount (added last, no discounts)
       oneOffAddOnCosts[nm] = (oneOffAddOnCosts[nm] || 0) + converted;
+      oneOffAddOnQtyMap[nm] = (oneOffAddOnQtyMap[nm] || 0) + qty;
       totalOneOffAddOnCost += converted;
+    });
+    // Build one-off add-on details for reporting
+    var oneOffAddOnDetails = Object.keys(oneOffAddOnCosts).map(function(nm){
+      return { name: nm, quantity: oneOffAddOnQtyMap[nm] || 0, total: oneOffAddOnCosts[nm] || 0 };
     });
     for (var aon in oneOffAddOnCosts) {
       addOnCosts[aon] = (addOnCosts[aon] || 0) + oneOffAddOnCosts[aon];
     }
     totalAddOnCost += totalOneOffAddOnCost;
     Logger.log(`One-off add-ons (${currency}): ${JSON.stringify(oneOffAddOnCosts)} | total: ${totalOneOffAddOnCost}`);
-
     // --- STEP 5c: Rental Add-on Products (T2:U3) - USD per year, convert for totals ---
     var rentalAddOnPriceMap = {};
     (data.rentalAddOnProducts || []).forEach(function(item){
