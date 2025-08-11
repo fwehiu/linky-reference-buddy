@@ -2559,6 +2559,18 @@
                   <span class="addon-price">${formatCurrencyExact(lineTotal, selectedCurrency)}</span>
                 `;
                 rentalItemsContainer.appendChild(item);
+              } else if (usdSubtotal > 0) {
+                // Fallback: display backend subtotal even if quantity couldn't be determined
+                hasAny = true;
+                const subtotalConverted = convertUSDToSelected(Number(usdSubtotal), selectedCurrency);
+                const lineTotal = Math.ceil(subtotalConverted);
+                const item = document.createElement('div');
+                item.className = 'addon-item';
+                item.innerHTML = `
+                  <span class="addon-name">${name}</span>
+                  <span class="addon-price">${formatCurrencyExact(lineTotal, selectedCurrency)}</span>
+                `;
+                rentalItemsContainer.appendChild(item);
               }
             }
           }
