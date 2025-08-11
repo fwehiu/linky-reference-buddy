@@ -330,6 +330,7 @@ function calculatePrice(formData) {
     var includeCamera = formData.includeCamera; 
     var cameraCount = formData.cameraCount; 
     var discretionaryDiscountInputPercent = parseFloat(formData.discretionaryDiscount) || 0; 
+    var discountFirstYearOnly = !!formData.discountFirstYearOnly;
     var contractYears = parseInt(formData.contractYears) || 1; 
     var companyName = formData.companyName || ""; 
     var salesContact = formData.salesContact || ""; 
@@ -746,14 +747,32 @@ function calculatePrice(formData) {
     Logger.log(`Final Calculation (${currency}): Base(${baseYear1Cost}) + Rental(${rentalAddOnTotalUSD}) + One-off(${oneOffAddOnTotalUSD}) = ${finalYear1Cost}`);
 
     // --- STEP 7: Calculate Multi-Year Values (do not multiply one-off add-ons; rentals recur each year) ---
-    var totalContractValue = ((baseYear1Cost + rentalAddOnTotalUSD) * contractYears) + oneOffAddOnTotalUSD; 
+    var totalContractValue = 0;
+    if (contractYears <= 1) {
+      totalContractValue = baseYear1Cost + rentalAddOnTotalUSD + oneOffAddOnTotalUSD;
+    } else {
+      if (discountFirstYearOnly) {
+        var recurringBase = baseYear1Cost + roundedDiscretionaryDiscount; // add back discretionary discount for subsequent years
+        totalContractValue = baseYear1Cost + (contractYears - 1) * recurringBase + (rentalAddOnTotalUSD * contractYears) + oneOffAddOnTotalUSD;
+      } else {
+        totalContractValue = ((baseYear1Cost + rentalAddOnTotalUSD) * contractYears) + oneOffAddOnTotalUSD; 
+      }
+    }
     var inflationSavings = 0;
     
     if (contractYears > 1) { 
       let rateForProjection = sheetInflationRate; 
       if (rateForProjection > 0) { 
         const r_proj = 1 + rateForProjection; 
-        let projectedValueWithInflation = (baseYear1Cost + rentalAddOnTotalUSD) * (1 - Math.pow(r_proj, contractYears)) / (1 - r_proj) + oneOffAddOnTotalUSD; 
+        let projectedValueWithInflation;
+        if (discountFirstYearOnly) {
+          const firstTerm = baseYear1Cost + rentalAddOnTotalUSD;
+          const recurringTerm = baseYear1Cost + roundedDiscretionaryDiscount + rentalAddOnTotalUSD;
+          const sumExcludingFirst = (Math.pow(r_proj, contractYears) - r_proj) / (r_proj - 1); // r + r^2 + ... + r^(N-1)
+          projectedValueWithInflation = firstTerm + recurringTerm * sumExcludingFirst + oneOffAddOnTotalUSD;
+        } else {
+          projectedValueWithInflation = (baseYear1Cost + rentalAddOnTotalUSD) * (1 - Math.pow(r_proj, contractYears)) / (1 - r_proj) + oneOffAddOnTotalUSD; 
+        }
         inflationSavings = Math.max(0, projectedValueWithInflation - totalContractValue); 
       } 
     }
@@ -816,6 +835,7 @@ function calculatePrice(formData) {
       regionDiscountPercentDecimal: regionDiscountDecimal, 
       paymentFrequencyDiscountPercentDecimal: paymentFrequencyDiscountDecimal, 
       discretionaryDiscountPercentDecimal: discretionaryDiscountCalcDecimal, 
+      discretionaryFirstYearOnly: discountFirstYearOnly,
       bulkDiscountAmount: roundedBulkDiscount,
       regionDiscountAmount: roundedRegionDiscount, 
       paymentFrequencyDiscountAmount: roundedPaymentDiscount, 
