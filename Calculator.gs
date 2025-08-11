@@ -427,12 +427,10 @@ function calculatePrice(formData) {
           productBaseCostNZD = Math.max(productBaseCostNZD, minNZD);
         }
 
-        // --- APPLY CURRENCY CONVERSION TO BASE COST IMMEDIATELY ---
-        let productBaseCostConverted = productBaseCostNZD * currencyRate;
-        Logger.log(`Product ${productName}: Base cost NZD=${productBaseCostNZD}, Converted=${productBaseCostConverted} ${currency}`);
-
-        productBaseCosts[fruitType][productName] = productBaseCostConverted;
-        currentFruitBasePrice += productBaseCostConverted;
+        // Store base cost in NZD (no conversion here; conversion happens at the end)
+        Logger.log(`Product ${productName}: Base cost NZD=${productBaseCostNZD}`);
+        productBaseCosts[fruitType][productName] = productBaseCostNZD;
+        currentFruitBasePrice += productBaseCostNZD;
         productDetailsForPlan.push(`${productName} (${prodTon.toFixed(2)} t)`);
       }
 
@@ -466,170 +464,140 @@ function calculatePrice(formData) {
       fruitGroupedData[fruitType] = { totalTonnage: currentFruitTotalTonnage, basePrice: currentFruitBasePrice, bulkDiscount: fruitBulkDiscountAmount };
     }
 
-    // --- STEP 3: Apply NEW CASCADING DISCOUNT LOGIC First to get final product prices ---
-    Logger.log(`=== NEW CASCADING DISCOUNT LOGIC (${currency}) ===`);
+    // --- STEP 3: Apply REQUIRED DISCOUNT LOGIC PER PRODUCT (NZD, before currency conversion) ---
+    Logger.log('=== PRODUCT-LEVEL DISCOUNT LOGIC (NZD) ===');
     
-    let finalProductPricesConverted = {};
+    let finalProductPricesNZD = {};
+    // Reset discount totals (we'll not subtract them later since applied here)
     let totalAppliedBulkDiscount = 0;
     let totalAppliedRegionDiscount = 0;
     let totalAppliedPaymentDiscount = 0;
     let totalAppliedDiscretionaryDiscount = 0;
 
-    // Calculate Camera rental (convert to selected currency)
-    var cameraRentalCost = 0;
+    // Camera rental calculated in NZD; conversion will occur at the end
+    var cameraRentalCostNZD = 0;
     if (customerType === 'Packer' && includeCamera && cameraCount > 0) {
-      cameraRentalCost = cameraCount * data.cameraRentalPriceNZD * currencyRate;
+      cameraRentalCostNZD = cameraCount * data.cameraRentalPriceNZD;
     }
-    var roundedCameraRental = roundUpToNearestHundred(cameraRentalCost);
+    var roundedCameraRental = 0; // will be computed after conversion
 
     for (let fruitType in productBaseCosts) {
-      let fruitData = fruitGroupedData[fruitType];
-      let fruitBase = fruitData.basePrice || 0;
-      let fruitTotalBulkDiscount = fruitData.bulkDiscount || 0;
-      
-      finalProductPricesConverted[fruitType] = {};
+      finalProductPricesNZD[fruitType] = {};
+      for (let productName in productBaseCosts[fruitType]) {
+        if (productName.startsWith('_')) continue;
+        const P = productBaseCosts[fruitType][productName]; // NZD, min-enforced
+        const minNZDValRaw = minimumTotalPrices[productName];
+        const minNZDVal = (minNZDValRaw !== undefined && minNZDValRaw !== null && !isNaN(parseFloat(minNZDValRaw))) ? parseFloat(minNZDValRaw) : 0;
 
-        for (let productName in productBaseCosts[fruitType]) {
-          if (productName.startsWith('_')) continue;
+        const regDisc = P * regionDiscountDecimal;
+        const payDisc = P * paymentFrequencyDiscountDecimal;
 
-          let baseProductPrice = productBaseCosts[fruitType][productName]; // Already converted and min-enforced in Step 2
-          let productPortion = (fruitBase > 0) ? (baseProductPrice / fruitBase) : 0;
-
-          Logger.log(`=== Product ${productName} in ${fruitType} (Currency: ${currency}) ===`);
-          Logger.log(`Base price (converted, min-enforced): ${baseProductPrice} ${currency}`);
-
-          // Potential discounts (exact values, accumulated globally later)
-          let potentialBulkDiscount = fruitTotalBulkDiscount * productPortion;
-          let potentialRegionDiscount = baseProductPrice * regionDiscountDecimal;
-          let potentialPaymentDiscount = baseProductPrice * paymentFrequencyDiscountDecimal;
-          let potentialDiscretionaryDiscount = baseProductPrice * discretionaryDiscountCalcDecimal;
-
-          // Minimum price info (for logs only)
-          let minTotalPriceValue = minimumTotalPrices[productName];
-          let hasMinimumPrice = minTotalPriceValue !== undefined && minTotalPriceValue !== null && !isNaN(parseFloat(minTotalPriceValue));
-          let minimumPriceConverted = hasMinimumPrice ? parseFloat(minTotalPriceValue) * currencyRate : 0;
-          Logger.log(`Minimum price (converted): ${minimumPriceConverted} ${currency}`);
-
-          // Final product price is the base (already max(base, min)) — do not override with minimum again here
-          let finalProductPrice = baseProductPrice;
-          finalProductPricesConverted[fruitType][productName] = finalProductPrice;
-          Logger.log(`Final product price (pre-discounts): ${finalProductPrice} ${currency}`);
-
-          // Accumulate ALL discounts; they will be applied at the totals stage
-          totalAppliedBulkDiscount += potentialBulkDiscount;
-          totalAppliedRegionDiscount += potentialRegionDiscount;
-          totalAppliedPaymentDiscount += potentialPaymentDiscount;
-          totalAppliedDiscretionaryDiscount += potentialDiscretionaryDiscount;
+        let discounted;
+        if (P - (regDisc + payDisc) > minNZDVal) {
+          discounted = P - (regDisc + payDisc);
+        } else if (P - payDisc > minNZDVal) {
+          discounted = P - payDisc;
+        } else {
+          discounted = minNZDVal;
         }
-    }
 
-    // --- STEP 4: Round up individual product prices and calculate rounded products total ---
-    Logger.log(`=== ROUNDING INDIVIDUAL PRODUCTS (${currency}) ===`);
-    
-    let roundedProductsTotal = 0;
-    
-    for (let fruitType in finalProductPricesConverted) {
-      for (let productName in finalProductPricesConverted[fruitType]) {
-        let exactPrice = finalProductPricesConverted[fruitType][productName];
-        let roundedPrice = roundUpToNearestHundred(exactPrice);
-        finalProductPricesConverted[fruitType][productName] = roundedPrice;
-        roundedProductsTotal += roundedPrice;
-        Logger.log(`Product ${productName}: ${exactPrice} -> ${roundedPrice} (rounded up)`);
+        finalProductPricesNZD[fruitType][productName] = discounted;
       }
     }
 
-    // --- STEP 5: Calculate Add-ons based on ROUNDED product costs (MOVED AFTER ROUNDING) ---
-    var addOnCosts = {};
-    var exactAddOnCosts = {}; // Keep track of exact values
-    var totalAddOnCost = 0;
+    // --- STEP 4: Convert discounted product prices to selected currency and round ---
+    Logger.log(`=== CONVERSION & ROUNDING OF PRODUCTS (${currency}) ===`);
+    let finalProductPricesConverted = {};
+    let roundedProductsTotal = 0;
+    for (let fruitType in finalProductPricesNZD) {
+      finalProductPricesConverted[fruitType] = {};
+      for (let productName in finalProductPricesNZD[fruitType]) {
+        const converted = finalProductPricesNZD[fruitType][productName] * currencyRate;
+        const rounded = roundUpToNearestHundred(converted);
+        finalProductPricesConverted[fruitType][productName] = rounded;
+        roundedProductsTotal += rounded;
+        Logger.log(`Product ${productName}: ${converted} -> ${rounded} ${currency}`);
+      }
+    }
 
-    Logger.log(`=== ADD-ON CALCULATION START (${currency}) - Using ROUNDED product prices ===`);
+    // --- STEP 5: Calculate Add-ons based on DISCOUNTED product prices (NZD), then convert ---
+    var addOnCosts = {};
+    var exactAddOnCosts = {}; // NZD exact values for percentage add-ons
+    var totalAddOnCost = 0; // Final converted total for all add-ons
+
+    Logger.log(`=== ADD-ON CALCULATION START (NZD base) ===`);
 
     for (let fruitType in selectedAddOnsByFruit) {
       let selectedAddOns = selectedAddOnsByFruit[fruitType] || [];
       let productsData = selectedFruits[fruitType].products || {};
       
-      Logger.log(`Processing add-ons for ${fruitType}: ${JSON.stringify(selectedAddOns)}`);
-      
       selectedAddOns.forEach(aoName => {
         const details = data.addOns[aoName];
-        Logger.log(`Processing add-on: ${aoName}, details: ${JSON.stringify(details)}`);
-        
         if (details) {
-          let applicableRoundedProductsTotal = 0;
-          
-          // Calculate total of ROUNDED product prices for applicable products
+          let applicableDiscountedProductsNZDTotal = 0;
+          // Calculate total of DISCOUNTED product prices (NZD) for applicable products
           for (const pName in productsData) {
-            Logger.log(`Checking product ${pName} for add-on ${aoName}`);
             if (details.hasOwnProperty(pName)) {
-              Logger.log(`Product ${pName} is applicable for add-on ${aoName}`);
-              if (finalProductPricesConverted[fruitType] && finalProductPricesConverted[fruitType][pName]) {
-                const roundedProductPrice = finalProductPricesConverted[fruitType][pName]; // Already rounded
-                applicableRoundedProductsTotal += roundedProductPrice;
-                Logger.log(`Add-on ${aoName} - Product ${pName}: Rounded price ${roundedProductPrice} ${currency}, Running total: ${applicableRoundedProductsTotal} ${currency}`);
+              if (finalProductPricesNZD[fruitType] && finalProductPricesNZD[fruitType][pName]) {
+                const discountedPriceNZD = finalProductPricesNZD[fruitType][pName];
+                applicableDiscountedProductsNZDTotal += discountedPriceNZD;
               }
             }
           }
 
-          Logger.log(`Total applicable rounded products value for ${aoName}: ${applicableRoundedProductsTotal} ${currency}`);
-
-          if (applicableRoundedProductsTotal > 0) {
+          if (applicableDiscountedProductsNZDTotal > 0) {
             let markup = 0;
             for (const bp in details) {
-              if (productsData.hasOwnProperty(bp)) {
-                markup = details[bp];
-                Logger.log(`Found markup for add-on ${aoName}: ${markup}`);
-                break;
-              }
+              if (productsData.hasOwnProperty(bp)) { markup = details[bp]; break; }
             }
-
             if (markup !== 0) {
-              // Calculate add-on cost as exact percentage markup of ROUNDED product prices
-              const addonCostExact = applicableRoundedProductsTotal * markup;
-              
-              Logger.log(`Add-on ${aoName} calculation (${currency}): Rounded Base=${applicableRoundedProductsTotal}, Markup=${markup} (${markup*100}%), Result=${addonCostExact}`);
-              
-              // Store exact values for internal calculations
-              exactAddOnCosts[aoName] = (exactAddOnCosts[aoName] || 0) + addonCostExact;
+              // Calculate add-on cost as exact percentage markup of DISCOUNTED product prices (NZD)
+              const addonCostExactNZD = applicableDiscountedProductsNZDTotal * markup;
+              exactAddOnCosts[aoName] = (exactAddOnCosts[aoName] || 0) + addonCostExactNZD;
             }
           }
         }
       });
     }
 
-    // Round individual add-ons and calculate total from rounded values
-    for (let aoName in exactAddOnCosts) {
-      addOnCosts[aoName] = roundUpToNearestHundred(exactAddOnCosts[aoName]);
-      totalAddOnCost += addOnCosts[aoName];
-    }
-
-    Logger.log("=== ADD-ON CALCULATION END ===");
-    Logger.log(`Final add-on costs (${currency}): ${JSON.stringify(addOnCosts)}`);
-    Logger.log(`Total add-on cost (${currency}): ${totalAddOnCost}`);
-
-    // --- STEP 5b: One-off Add-on Products (Q2:R2 names, Q3:R3 one-off prices) - Count in Year 1 only ---
+    // One-off Add-on Products (NZD) - Count in Year 1 only; do NOT round
     var oneOffAddOnPriceMap = {};
     (data.oneOffAddOnProducts || []).forEach(function(item){
       if (item && item.name) { oneOffAddOnPriceMap[String(item.name).trim()] = parseFloat(item.price) || 0; }
     });
 
-    var oneOffAddOnCosts = {};
-    var totalOneOffAddOnCost = 0;
+    var oneOffAddOnCosts = {}; // NZD
+    var totalOneOffAddOnCost = 0; // will be set to converted total later
     (oneOffAddOns || []).forEach(function(entry){
       var nm = String((entry && (entry.name || entry.Name)) || '').trim();
       var qty = parseFloat(entry && (entry.qty || entry.quantity)) || 0;
       if (!nm || qty <= 0) return;
       var unitNZD = parseFloat(oneOffAddOnPriceMap[nm]) || 0;
-      var converted = unitNZD * qty * currencyRate;
-      // Do NOT round one-off add-ons; charge exact amount (added last, no discounts)
-      oneOffAddOnCosts[nm] = (oneOffAddOnCosts[nm] || 0) + converted;
-      totalOneOffAddOnCost += converted;
+      var exactNZD = unitNZD * qty;
+      oneOffAddOnCosts[nm] = (oneOffAddOnCosts[nm] || 0) + exactNZD;
     });
-    for (var aon in oneOffAddOnCosts) {
-      addOnCosts[aon] = (addOnCosts[aon] || 0) + oneOffAddOnCosts[aon];
+
+    // Convert and round percentage-based add-ons; convert one-off add-ons without rounding
+    for (let aoName in exactAddOnCosts) {
+      const convertedRounded = roundUpToNearestHundred(exactAddOnCosts[aoName] * currencyRate);
+      addOnCosts[aoName] = (addOnCosts[aoName] || 0) + convertedRounded;
+      totalAddOnCost += convertedRounded;
     }
-    totalAddOnCost += totalOneOffAddOnCost;
-    Logger.log(`One-off add-ons (${currency}): ${JSON.stringify(oneOffAddOnCosts)} | total: ${totalOneOffAddOnCost}`);
+    let convertedOneOffTotal = 0;
+    for (let aon in oneOffAddOnCosts) {
+      const convertedExact = oneOffAddOnCosts[aon] * currencyRate; // do NOT round one-off add-ons
+      addOnCosts[aon] = (addOnCosts[aon] || 0) + convertedExact;
+      totalAddOnCost += convertedExact;
+      convertedOneOffTotal += convertedExact;
+    }
+    totalOneOffAddOnCost = convertedOneOffTotal;
+
+    // Convert and round camera rental now
+    roundedCameraRental = roundUpToNearestHundred(cameraRentalCostNZD * currencyRate);
+
+    Logger.log("=== ADD-ON CALCULATION END ===");
+    Logger.log(`Final add-on costs (${currency}): ${JSON.stringify(addOnCosts)}`);
+    Logger.log(`Total add-on cost (${currency}): ${totalAddOnCost}`);
 
     // --- STEP 6: Round up the discount amounts and calculate final cost ---
     var roundedBulkDiscount = roundUpToNearestHundred(totalAppliedBulkDiscount);
@@ -638,13 +606,13 @@ function calculatePrice(formData) {
     var roundedDiscretionaryDiscount = roundUpToNearestHundred(totalAppliedDiscretionaryDiscount);
     
     Logger.log(`=== FINAL CALCULATION WITH ROUNDED VALUES (${currency}) ===`);
-    Logger.log(`Products total (from rounded individual products): ${roundedProductsTotal}`);
-    Logger.log(`Add-ons: ${totalAddOnCost} (calculated from rounded products)`);
-    Logger.log(`Camera: ${cameraRentalCost} -> ${roundedCameraRental} (rounded up)`);
-    Logger.log(`Bulk discount: ${totalAppliedBulkDiscount} -> ${roundedBulkDiscount} (rounded up)`);
-    Logger.log(`Region discount: ${totalAppliedRegionDiscount} -> ${roundedRegionDiscount} (rounded up)`);
-    Logger.log(`Payment discount: ${totalAppliedPaymentDiscount} -> ${roundedPaymentDiscount} (rounded up)`);
-    Logger.log(`Discretionary discount: ${totalAppliedDiscretionaryDiscount} -> ${roundedDiscretionaryDiscount} (rounded up)`);
+    Logger.log(`Products total (converted & rounded): ${roundedProductsTotal}`);
+    Logger.log(`Add-ons: ${totalAddOnCost} (converted; percentage add-ons rounded, one-offs exact)`);
+    Logger.log(`Camera: ${roundedCameraRental} (converted & rounded)`);
+    Logger.log(`Bulk discount: ${totalAppliedBulkDiscount} -> ${roundUpToNearestHundred(totalAppliedBulkDiscount)} (rounded up)`);
+    Logger.log(`Region discount: ${totalAppliedRegionDiscount} -> ${roundUpToNearestHundred(totalAppliedRegionDiscount)} (rounded up)`);
+    Logger.log(`Payment discount: ${totalAppliedPaymentDiscount} -> ${roundUpToNearestHundred(totalAppliedPaymentDiscount)} (rounded up)`);
+    Logger.log(`Discretionary discount: ${totalAppliedDiscretionaryDiscount} -> ${roundUpToNearestHundred(totalAppliedDiscretionaryDiscount)} (rounded up)`);
     
     // --- Calculate Final Year 1 Cost using ROUNDED VALUES ---
     var finalYear1Cost = roundedProductsTotal + totalAddOnCost + roundedCameraRental - roundedBulkDiscount - roundedRegionDiscount - roundedPaymentDiscount - roundedDiscretionaryDiscount;
