@@ -2617,6 +2617,35 @@
             rentalItemsContainer.appendChild(item);
           }
         }
+        else {
+          // Backend provided no rental-specific fields; reconstruct from UI selections
+          const catalog = Array.isArray(data?.rentalAddOnProducts) ? data.rentalAddOnProducts : [];
+          const priceMapUSD = {};
+          catalog.forEach(it => { if (it && it.name) priceMapUSD[String(it.name).trim()] = parseFloat(it.price) || 0; });
+          const entries = Object.entries(rentalAddOnSelections).filter(([,q]) => (parseInt(q,10)||0) > 0);
+          if (entries.length > 0) {
+            entries.forEach(([rawName, qRaw]) => {
+              const name = String(rawName||'').trim();
+              const qty = parseInt(qRaw,10) || 0;
+              const unitUSD = priceMapUSD[name] || 0;
+              const unitConverted = convertUSDToSelected(unitUSD, selectedCurrency);
+              const unitRounded = Math.ceil(unitConverted);
+              const lineTotal = unitRounded * qty;
+              if (lineTotal > 0) {
+                hasAny = true;
+                totalRounded += lineTotal;
+                const displayName = `${name} x${qty}`;
+                const item = document.createElement('div');
+                item.className = 'addon-item';
+                item.innerHTML = `
+                  <span class="addon-name">${displayName}</span>
+                  <span class="addon-price">${formatCurrencyExact(lineTotal, selectedCurrency)}</span>
+                `;
+                rentalItemsContainer.appendChild(item);
+              }
+            });
+          }
+        }
         
         if (!hasAny) {
           rentalItemsContainer.innerHTML = '<div class="text-gray-500 italic">No rental add-on products selected</div>';
