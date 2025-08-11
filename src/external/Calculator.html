@@ -2474,47 +2474,64 @@
         const selectedCurrency = result.currency || 'NZD';
         if (result.oneOffAddOnTotalUSD > 0 && result.oneOffAddOnCosts) {
           oneOffSection.style.display = 'block';
-          const convertedTotal = convertUSDToSelected((result.oneOffAddOnTotalUSD || 0), selectedCurrency);
-          oneOffTotalElement.textContent = formatCurrencyExact(convertedTotal, selectedCurrency);
           oneOffItemsContainer.innerHTML = '';
-          for (const [name, cost] of Object.entries(result.oneOffAddOnCosts)) {
-            if (cost > 0) {
-              const item = document.createElement('div');
-              item.className = 'addon-item';
-              const qty = parseInt(oneOffAddOnSelections[name] || 0, 10);
-              const displayName = (qty && qty > 0) ? `${name} x${qty}` : name;
-              const convertedCost = convertUSDToSelected(cost, selectedCurrency);
-              item.innerHTML = `
-                <span class="addon-name">${displayName}</span>
-                <span class="addon-price">${formatCurrencyExact(convertedCost, selectedCurrency)}</span>
-              `;
-              oneOffItemsContainer.appendChild(item);
+
+          // Calculate per-unit rounded totals after currency conversion
+          let totalRounded = 0;
+          for (const [name, usdSubtotal] of Object.entries(result.oneOffAddOnCosts)) {
+            if (usdSubtotal > 0) {
+              const qty = parseInt(oneOffAddOnSelections[name] || 0, 10) || 0;
+              if (qty > 0) {
+                const unitUSD = usdSubtotal / qty;
+                const unitConverted = convertUSDToSelected(unitUSD, selectedCurrency);
+                const unitRounded = Math.ceil(unitConverted); // round up per unit to nearest whole number
+                const lineTotal = unitRounded * qty;
+                totalRounded += lineTotal;
+
+                const item = document.createElement('div');
+                item.className = 'addon-item';
+                const displayName = `${name} x${qty}`;
+                item.innerHTML = `
+                  <span class="addon-name">${displayName}</span>
+                  <span class="addon-price">${formatCurrencyExact(lineTotal, selectedCurrency)}</span>
+                `;
+                oneOffItemsContainer.appendChild(item);
+              }
             }
           }
+
+          oneOffTotalElement.textContent = formatCurrencyExact(totalRounded, selectedCurrency);
         } else if (typeof result.totalOneOffAddOnCost === 'number' && result.totalOneOffAddOnCost > 0) {
-          // Fallback path when backend already returns amounts in selected currency
+          // Fallback path when backend already returns amounts in selected currency (assumed per-unit in NZD)
           oneOffSection.style.display = 'block';
-          oneOffTotalElement.textContent = formatCurrencyExact(result.totalOneOffAddOnCost, selectedCurrency);
           oneOffItemsContainer.innerHTML = '';
-          // Try to reconstruct itemization from loaded data and user selections
+
+          let totalRounded = 0;
           const priceMapNZD = {};
           (data.oneOffAddOnProducts || []).forEach(it => { if (it && it.name) priceMapNZD[String(it.name)] = parseFloat(it.price) || 0; });
+
           for (const [name, qtyRaw] of Object.entries(oneOffAddOnSelections)) {
             const qty = parseInt(qtyRaw, 10) || 0;
             if (qty > 0) {
               const unitNZD = priceMapNZD[name] || 0;
               const rateTarget = getCurrencyRate(selectedCurrency) || 1; // NZD -> selected
-              const cost = unitNZD * qty * rateTarget;
+              const unitSelected = unitNZD * rateTarget;
+              const unitRounded = Math.ceil(unitSelected);
+              const lineTotal = unitRounded * qty;
+              totalRounded += lineTotal;
+
               const item = document.createElement('div');
               item.className = 'addon-item';
               const displayName = `${name} x${qty}`;
               item.innerHTML = `
                 <span class="addon-name">${displayName}</span>
-                <span class="addon-price">${formatCurrencyExact(cost, selectedCurrency)}</span>
+                <span class="addon-price">${formatCurrencyExact(lineTotal, selectedCurrency)}</span>
               `;
               oneOffItemsContainer.appendChild(item);
             }
           }
+
+          oneOffTotalElement.textContent = formatCurrencyExact(totalRounded, selectedCurrency);
         } else {
           oneOffSection.style.display = 'none';
         }
@@ -2528,27 +2545,37 @@
         const selectedCurrency = result.currency || 'NZD';
         if (result.rentalAddOnTotalUSD > 0 && result.rentalAddOnCosts) {
           rentalSection.style.display = 'block';
-          const convertedTotal = convertUSDToSelected((result.rentalAddOnTotalUSD || 0), selectedCurrency);
-          rentalTotalElement.textContent = formatCurrencyExact(convertedTotal, selectedCurrency);
           rentalItemsContainer.innerHTML = '';
-          for (const [name, cost] of Object.entries(result.rentalAddOnCosts)) {
-            if (cost > 0) {
-              const item = document.createElement('div');
-              item.className = 'addon-item';
-              const qty = parseInt(rentalAddOnSelections[name] || 0, 10);
-              let displayName = name;
-              if (qty && qty > 0) {
-                const idx = name.toLowerCase().lastIndexOf(' annual');
-                displayName = idx > -1 ? `${name.slice(0, idx)} x${qty}${name.slice(idx)}` : `${name} x${qty}`;
+
+          let totalRounded = 0;
+          for (const [name, usdSubtotal] of Object.entries(result.rentalAddOnCosts)) {
+            if (usdSubtotal > 0) {
+              const qty = parseInt(rentalAddOnSelections[name] || 0, 10) || 0;
+              if (qty > 0) {
+                const unitUSD = usdSubtotal / qty;
+                const unitConverted = convertUSDToSelected(unitUSD, selectedCurrency);
+                const unitRounded = Math.ceil(unitConverted);
+                const lineTotal = unitRounded * qty;
+                totalRounded += lineTotal;
+
+                let displayName = name;
+                if (qty && qty > 0) {
+                  const idx = name.toLowerCase().lastIndexOf(' annual');
+                  displayName = idx > -1 ? `${name.slice(0, idx)} x${qty}${name.slice(idx)}` : `${name} x${qty}`;
+                }
+
+                const item = document.createElement('div');
+                item.className = 'addon-item';
+                item.innerHTML = `
+                  <span class="addon-name">${displayName}</span>
+                  <span class="addon-price">${formatCurrencyExact(lineTotal, selectedCurrency)}</span>
+                `;
+                rentalItemsContainer.appendChild(item);
               }
-              const convertedCost = convertUSDToSelected(cost, selectedCurrency);
-              item.innerHTML = `
-                <span class="addon-name">${displayName}</span>
-                <span class="addon-price">${formatCurrencyExact(convertedCost, selectedCurrency)}</span>
-              `;
-              rentalItemsContainer.appendChild(item);
             }
           }
+
+          rentalTotalElement.textContent = formatCurrencyExact(totalRounded, selectedCurrency);
         } else {
           rentalSection.style.display = 'none';
         }
