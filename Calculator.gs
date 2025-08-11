@@ -7,7 +7,7 @@
 const BULK_DISCOUNT_SHEET_NAME = 'Bulk Discounts';
 const BASE_RATES_SHEET_NAME = 'Base Rates per Fruit Type';
 const CAMERA_PRICE_CELL = 'E3';
-const INFLATION_RATE_CELL = 'D3';
+const INFLATION_RATE_CELL = 'I3';
 const MIN_PRICE_START_ROW = 6;
 const DOC_TEMPLATE_ID = '1sUO5ivgJELWlY6aMEWZ1vI5chfQo9ONCbw3Wcef5p4I';
 
