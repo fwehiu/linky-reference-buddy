@@ -402,6 +402,22 @@ function calculatePrice(formData) {
           if (rate !== null && !isNaN(parseFloat(rate)) && isFinite(rate)) {
             productBaseCostNZD = parseFloat(rate) * prodTon;
           }
+        } else {
+          // Fallback: in 'Packer & Grower' mode, product might belong to the other source list
+          const altSource = usingSource === 'Grower' ? 'Packer' : 'Grower';
+          const altTypes = altSource === 'Grower' ? (data.growerTypes || []) : (data.packerTypes || []);
+          const altFruitIndex = altTypes.indexOf(fruitType);
+          if (altFruitIndex !== -1) {
+            const altProducts = altSource === 'Grower' ? (data.growerProducts || []) : (data.packerProducts || []);
+            const altRates = altSource === 'Grower' ? (data.growerRates[altFruitIndex] || []) : (data.packerRates[altFruitIndex] || []);
+            const altIdx = altProducts.indexOf(productName);
+            if (altIdx !== -1) {
+              const altRate = (altRates[altIdx] !== undefined) ? altRates[altIdx] : null;
+              if (altRate !== null && !isNaN(parseFloat(altRate)) && isFinite(altRate)) {
+                productBaseCostNZD = parseFloat(altRate) * prodTon;
+              }
+            }
+          }
         }
 
         // --- APPLY CURRENCY CONVERSION TO BASE COST IMMEDIATELY ---

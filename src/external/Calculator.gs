@@ -408,6 +408,21 @@ function calculatePrice(formData) {
           if (rate !== null && !isNaN(parseFloat(rate)) && isFinite(rate)) {
             productBaseCostNZD = parseFloat(rate) * prodTon;
           }
+        } else {
+          // Fallback: product may belong to the other catalogue (Packer vs Grower)
+          const altProductsList = customerType === 'Grower' ? (data.packerProducts || []) : (data.growerProducts || []);
+          const altRatesTable = customerType === 'Grower' ? (data.packerRates || []) : (data.growerRates || []);
+          const altTypes = customerType === 'Grower' ? (data.packerTypes || []) : (data.growerTypes || []);
+          const altFruitIndex = altTypes.indexOf(fruitType);
+          if (altFruitIndex !== -1) {
+            const altIdx = altProductsList.indexOf(productName);
+            if (altIdx !== -1) {
+              const altRate = (altRatesTable[altFruitIndex]?.[altIdx] !== undefined) ? altRatesTable[altFruitIndex][altIdx] : null;
+              if (altRate !== null && !isNaN(parseFloat(altRate)) && isFinite(altRate)) {
+                productBaseCostNZD = parseFloat(altRate) * prodTon;
+              }
+            }
+          }
         }
 
         // --- APPLY CURRENCY CONVERSION TO BASE COST IMMEDIATELY ---
