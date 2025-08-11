@@ -2525,11 +2525,22 @@
         if (result.rentalAddOnCosts && Object.keys(result.rentalAddOnCosts).length > 0) {
           for (const [name, usdSubtotal] of Object.entries(result.rentalAddOnCosts)) {
             if (usdSubtotal > 0) {
-              const key = String(name || '');
-              const qty = parseInt((rentalAddOnSelections[key] ?? rentalAddOnSelections[key.trim()] ?? 0), 10) || 0;
+              // Compute quantity from backend subtotal and catalog unit price to avoid UI state mismatch
+              const nm = String(name || '').trim();
+              const catalogItem = (data && Array.isArray(data.rentalAddOnProducts) ? data.rentalAddOnProducts : []).find(it => String(it?.name || '').trim() === nm);
+              const unitUSDFromCatalog = catalogItem && typeof catalogItem.price !== 'undefined' ? (parseFloat(catalogItem.price) || 0) : 0;
+              let qty = 0;
+              if (unitUSDFromCatalog > 0) {
+                qty = Math.round(usdSubtotal / unitUSDFromCatalog);
+              }
+              // Fallback to UI selections if catalog lookup fails
+              if (!qty || qty <= 0) {
+                qty = parseInt((rentalAddOnSelections[nm] ?? rentalAddOnSelections[nm.trim()] ?? 0), 10) || 0;
+              }
+              console.log('Rental add-on display debug:', { name: nm, usdSubtotal, unitUSDFromCatalog, qtyFromCatalog: unitUSDFromCatalog > 0 ? Math.round(usdSubtotal / unitUSDFromCatalog) : 0, qtyUsed: qty });
               if (qty > 0) {
                 hasAny = true;
-                const unitUSD = usdSubtotal / qty;
+                const unitUSD = unitUSDFromCatalog > 0 ? unitUSDFromCatalog : (usdSubtotal / qty);
                 const unitConverted = convertUSDToSelected(unitUSD, selectedCurrency);
                 const unitRounded = Math.ceil(unitConverted);
                 const lineTotal = unitRounded * qty;
