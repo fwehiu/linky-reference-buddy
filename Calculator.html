@@ -1971,17 +1971,14 @@
     }
     
     function toggleCameraOptions() {
-      const cust = document.getElementById('customerType').value;
       const optsDiv = document.getElementById('cameraOptions');
       const cb = document.getElementById('cameraRental');
       
-      // Hide camera options when Packer is selected
-      optsDiv.style.display = cust === 'Packer' ? 'none' : 'block';
+      // Hide camera options for all customer types
+      optsDiv.style.display = 'none';
       
-      if (cust === 'Packer') {
-        cb.checked = false;
-        toggleCameraCount();
-      }
+      cb.checked = false;
+      toggleCameraCount();
     }
     
     function toggleCameraCount() {
