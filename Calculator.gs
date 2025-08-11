@@ -114,7 +114,7 @@ function getData() {
     var packerProducts = trimAndFilter(packerProductsRaw);
 
     var growerRates = baseRatesSheet.getRange(3, 2, growerFruitTypes.length || 1, growerProducts.length || 1).getValues();
-    var packerRates = baseRatesSheet.getRange(3, 8, packerFruitTypes.length || 1, packerProducts.length || 1).getValues();
+    var packerRates = baseRatesSheet.getRange(3, 12, packerFruitTypes.length || 1, packerProducts.length || 1).getValues();
 
     var currencyData = discountsSheet.getRange('P3:Q' + discountsSheet.getLastRow()).getValues();
     var currencies = [];
