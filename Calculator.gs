@@ -323,14 +323,15 @@ function calculatePrice(formData) {
     var salesContact = formData.salesContact || ""; 
     var oneOffAddOns = formData.oneOffAddOns || []; 
     
-    var fruitTypes = customerType === 'Grower' ? data.growerTypes : data.packerTypes; 
-    var productsList = customerType === 'Grower' ? data.growerProducts : data.packerProducts; 
-    var ratesTable = customerType === 'Grower' ? data.growerRates : data.packerRates; 
+    var combinedFruitTypes = Array.from(new Set([...(data.growerTypes || []), ...(data.packerTypes || [])])); 
+    var fruitTypes = (customerType === 'Grower') ? data.growerTypes : (customerType === 'Packer') ? data.packerTypes : combinedFruitTypes; 
+    var productsList = (customerType === 'Grower') ? data.growerProducts : data.packerProducts; 
+    var ratesTable = (customerType === 'Grower') ? data.growerRates : data.packerRates; 
     
     var regionDiscountDecimal = 0; 
     var regionIndex = data.regions.indexOf(region); 
     if (regionIndex !== -1) { 
-      regionDiscountDecimal = customerType === 'Grower' ? data.growerRegionDiscounts[regionIndex] : data.packerRegionDiscounts[regionIndex]; 
+      regionDiscountDecimal = (customerType === 'Grower') ? data.growerRegionDiscounts[regionIndex] : data.packerRegionDiscounts[regionIndex]; 
     } 
     
     var paymentFrequencyDiscountDecimal = data.paymentFrequencies[paymentFrequencyKey] || 0; 
@@ -368,9 +369,11 @@ function calculatePrice(formData) {
       var fruitType = String(fruitTypeKey || '').trim();
       var productsData = fruitInfo.products || {};
       var selectedAddOns = fruitInfo.addOns || [];
-      var fruitIndex = fruitTypes.indexOf(fruitType);
+      // Determine source table for this fruit (supports 'Packer & Grower')
+      var usingSource = customerType === 'Grower' ? 'Grower' : (customerType === 'Packer' ? 'Packer' : ((data.growerTypes || []).indexOf(fruitType) !== -1 ? 'Grower' : 'Packer'));
+      var fruitIndexLocal = usingSource === 'Grower' ? (data.growerTypes || []).indexOf(fruitType) : (data.packerTypes || []).indexOf(fruitType);
 
-      if (fruitIndex === -1 || Object.keys(productsData).length === 0) continue;
+      if (fruitIndexLocal === -1 || Object.keys(productsData).length === 0) continue;
 
       productBaseCosts[fruitType] = {};
       productFinalPrices[fruitType] = {};
@@ -389,11 +392,13 @@ function calculatePrice(formData) {
         grandTotalTonnage += prodTon;
         currentFruitTotalTonnage += prodTon;
 
-        let productIndex = productsList.indexOf(productName);
+        let productsArr = usingSource === 'Grower' ? (data.growerProducts || []) : (data.packerProducts || []);
+        let ratesRow = usingSource === 'Grower' ? (data.growerRates[fruitIndexLocal] || []) : (data.packerRates[fruitIndexLocal] || []);
+        let productIndex = productsArr.indexOf(productName);
         let productBaseCostNZD = 0;
 
         if (productIndex !== -1) {
-          let rate = (ratesTable[fruitIndex]?.[productIndex] !== undefined) ? ratesTable[fruitIndex][productIndex] : null;
+          let rate = (ratesRow[productIndex] !== undefined) ? ratesRow[productIndex] : null;
           if (rate !== null && !isNaN(parseFloat(rate)) && isFinite(rate)) {
             productBaseCostNZD = parseFloat(rate) * prodTon;
           }

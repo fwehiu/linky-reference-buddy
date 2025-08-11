@@ -1037,10 +1037,11 @@
               
               <div class="form-group">
                 <label for="customerType">Customer Type:</label>
-                <select id="customerType">
-                  <option value="Grower">Grower</option>
-                  <option value="Packer">Packer</option>
-                </select>
+                  <select id="customerType">
+                    <option value="Grower">Grower</option>
+                    <option value="Packer">Packer</option>
+                    <option value="Packer & Grower">Packer & Grower</option>
+                  </select>
               </div>
               
               <div class="form-group">
@@ -1536,7 +1537,13 @@
       const sel = document.getElementById('fruitType');
       sel.innerHTML = '<option value="">-- Select Fruit --</option>';
       
-      const types = (custType === 'Grower' ? data.growerTypes : data.packerTypes) || [];
+      let types = [];
+      if (custType === 'Packer & Grower') {
+        const set = new Set([...(data.growerTypes || []), ...(data.packerTypes || [])]);
+        types = Array.from(set);
+      } else {
+        types = (custType === 'Grower' ? (data.growerTypes || []) : (data.packerTypes || []));
+      }
       types.forEach(f => {
         const opt = document.createElement('option');
         opt.value = f;
@@ -1564,7 +1571,16 @@
       title.textContent = `Select Products for ${fruitType}:`;
       cont.innerHTML = '';
       
-      const prods = (custType === 'Grower' ? data.growerProducts : data.packerProducts) || [];
+       let prods = [];
+       if (custType === 'Packer & Grower') {
+         if ((data.growerTypes || []).includes(fruitType)) {
+           prods = (data.growerProducts || []);
+         } else {
+           prods = (data.packerProducts || []);
+         }
+       } else {
+         prods = (custType === 'Grower' ? (data.growerProducts || []) : (data.packerProducts || []));
+       }
       
       if (prods.length === 0) {
         cont.innerHTML = '<p>No products available.</p>';
