@@ -1253,41 +1253,9 @@
               <!-- Fruit breakdowns will be added here dynamically -->
             </div>
             
-            <!-- Add-ons section within the fruit breakdown section -->
-            <div id="addonsContainer" class="addons-section" style="display: none;">
-              <div class="addons-header">
-                <span>Add-ons Total</span>
-                <span class="total" id="addonsTotal">$0.00</span>
-              </div>
-              <div id="addonItemsContainer">
-                <!-- Individual add-on items will be added here -->
-              </div>
-            </div>
           </div>
         </div>
         
-        <!-- Add-on Product Breakdown (combined) -->
-        <div id="addOnBreakdownSection" class="addons-section" style="display: none;">
-          <div class="addons-header">
-            <span>Add-on Product Breakdown</span>
-          </div>
-          <!-- Recurring add-ons -->
-          <div id="addOnRecurringBlock" class="addons-subsection" style="display: none; margin-top: 8px;">
-            <div class="addons-header" style="border: none; padding: 0; margin-bottom: 8px;">
-              <span>Recurring Add-ons</span>
-              <span class="total" id="addOnRecurringTotal">$0.00</span>
-            </div>
-            <div id="addOnRecurringItems"></div>
-          </div>
-          <!-- One-off add-ons -->
-          <div id="addOnOneOffBlock" class="addons-subsection" style="display: none; margin-top: 12px;">
-            <div class="addons-header" style="border: none; padding: 0; margin-bottom: 8px;">
-              <span>One-off Add-ons</span>
-              <span class="total" id="addOnOneOffTotal">$0.00</span>
-            </div>
-            <div id="addOnOneOffItems"></div>
-          </div>
-        </div>
         
         <!-- One-off Add-on products breakdown -->
         <div id="oneOffAddonsBreakdown" class="addons-section" style="display: none;">
@@ -1301,7 +1269,7 @@
         <!-- Rental Add-on products breakdown (per year) -->
         <div id="rentalAddonsBreakdown" class="addons-section" style="display: none;">
           <div class="addons-header">
-            <span>Rental add-on products (per year)</span>
+            <span>Add-on products Annual</span>
             <span class="total" id="rentalAddonsTotal">$0.00</span>
           </div>
           <div id="rentalAddonItems"></div>
@@ -2470,35 +2438,6 @@
         breakdownContainer.innerHTML = '<div class="text-gray-500 italic">No product breakdown available</div>';
       }
 
-      // Handle add-ons section (recurring add-ons only; exclude one-off products)
-      const addonsContainer = document.getElementById('addonsContainer');
-      const addonItemsContainer = document.getElementById('addonItemsContainer');
-      const addonsTotalElement = document.getElementById('addonsTotal');
-
-      const oneOffNamesSet = new Set(Object.keys(result.oneOffAddOnCosts || {}));
-      const recurringEntries = Object.entries(result.addOnCosts || {}).filter(([name, cost]) => cost > 0 && !oneOffNamesSet.has(name));
-
-      if (recurringEntries.length > 0) {
-        addonsContainer.style.display = 'block';
-
-        const totalRecurring = recurringEntries.reduce((sum, [, cost]) => sum + cost, 0);
-        const roundedAddOnTotal = roundToNearestHundred(totalRecurring);
-        addonsTotalElement.textContent = formatCurrency(roundedAddOnTotal, result.currency);
-
-        addonItemsContainer.innerHTML = '';
-        recurringEntries.forEach(([addonName, cost]) => {
-          const roundedCost = roundToNearestHundred(cost);
-          const addonItem = document.createElement('div');
-          addonItem.className = 'addon-item';
-          addonItem.innerHTML = `
-            <span class="addon-name">${addonName}</span>
-            <span class="addon-price">${formatCurrency(roundedCost, result.currency)}</span>
-          `;
-          addonItemsContainer.appendChild(addonItem);
-        });
-      } else {
-        addonsContainer.style.display = 'none';
-      }
       
       // One-off add-on products breakdown (converted to selected currency)
       const oneOffSection = document.getElementById('oneOffAddonsBreakdown');
@@ -2615,61 +2554,6 @@
         }
       }
       
-      // Add-on Product Breakdown (combined section)
-      const addOnSection = document.getElementById('addOnBreakdownSection');
-      const recurBlock = document.getElementById('addOnRecurringBlock');
-      const recurItems = document.getElementById('addOnRecurringItems');
-      const recurTotalEl = document.getElementById('addOnRecurringTotal');
-      const oneOffBlock = document.getElementById('addOnOneOffBlock');
-      const oneOffItems = document.getElementById('addOnOneOffItems');
-      const oneOffTotalEl = document.getElementById('addOnOneOffTotal');
-
-      if (addOnSection && recurBlock && recurItems && recurTotalEl && oneOffBlock && oneOffItems && oneOffTotalEl) {
-        const hasRecurring = recurringEntries.length > 0;
-        const hasOneOff = (result.oneOffAddOnTotalUSD > 0) && !!result.oneOffAddOnCosts;
-
-        // Recurring
-        if (hasRecurring) {
-          recurBlock.style.display = 'block';
-          recurItems.innerHTML = '';
-          const totalRecurring = recurringEntries.reduce((sum, [, cost]) => sum + cost, 0);
-          recurTotalEl.textContent = formatCurrency(roundToNearestHundred(totalRecurring), result.currency);
-          recurringEntries.forEach(([name, cost]) => {
-            const roundedCost = roundToNearestHundred(cost);
-            const item = document.createElement('div');
-            item.className = 'addon-item';
-            item.innerHTML = `
-              <span class="addon-name">${name}</span>
-              <span class="addon-price">${formatCurrency(roundedCost, result.currency)}</span>
-            `;
-            recurItems.appendChild(item);
-          });
-        } else {
-          recurBlock.style.display = 'none';
-        }
-
-        // One-off (USD exact)
-        if (hasOneOff) {
-          oneOffBlock.style.display = 'block';
-          oneOffItems.innerHTML = '';
-          oneOffTotalEl.textContent = formatCurrencyExact((result.oneOffAddOnTotalUSD || 0), 'USD');
-          for (const [name, cost] of Object.entries(result.oneOffAddOnCosts)) {
-            if (cost > 0) {
-              const item = document.createElement('div');
-              item.className = 'addon-item';
-              item.innerHTML = `
-                <span class="addon-name">${name}</span>
-                <span class="addon-price">${formatCurrencyExact(cost, 'USD')}</span>
-              `;
-              oneOffItems.appendChild(item);
-            }
-          }
-        } else {
-          oneOffBlock.style.display = 'none';
-        }
-
-        addOnSection.style.display = (hasRecurring || hasOneOff) ? 'block' : 'none';
-      }
       
       // Populate discounts
       const discountsContainer = document.getElementById('discountsContainer');
