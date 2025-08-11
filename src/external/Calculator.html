@@ -1777,9 +1777,10 @@
         cont.innerHTML = '<p>No rental add-on products available.</p>';
         return;
       }
-      list.forEach((item, idx) => {
-        const name = (item && item.name) ? String(item.name) : '';
-        const id = `rental_${makeSafeId(name)}_${idx}`;
+        list.forEach((item, idx) => {
+          const nameRaw = (item && item.name) ? String(item.name) : '';
+          const name = nameRaw.trim();
+          const id = `rental_${makeSafeId(name)}_${idx}`;
         const row = document.createElement('div');
         row.className = 'checkbox-item';
         row.innerHTML = `
@@ -1804,7 +1805,7 @@
     function handleRentalAddOnChange(e) {
       const t = e.target;
       if (t && t.matches('input[type="checkbox"][data-rental="1"]')) {
-        const name = t.value;
+        const name = String(t.value || '').trim();
         const qtyInput = document.getElementById(`${t.id}_qty`);
         if (t.checked) {
           qtyInput.disabled = false;
@@ -1822,7 +1823,7 @@
         const id = t.getAttribute('data-rental-qty-for');
         const cb = document.getElementById(id);
         if (!cb) return;
-        const name = cb.value;
+        const name = String(cb.value || '').trim();
         const qty = parseInt(t.value, 10) || 0;
         rentalAddOnSelections[name] = Math.max(0, qty);
         cb.checked = qty > 0;
@@ -2524,7 +2525,8 @@
         if (result.rentalAddOnCosts && Object.keys(result.rentalAddOnCosts).length > 0) {
           for (const [name, usdSubtotal] of Object.entries(result.rentalAddOnCosts)) {
             if (usdSubtotal > 0) {
-              const qty = parseInt(rentalAddOnSelections[name] || 0, 10) || 0;
+              const key = String(name || '');
+              const qty = parseInt((rentalAddOnSelections[key] ?? rentalAddOnSelections[key.trim()] ?? 0), 10) || 0;
               if (qty > 0) {
                 hasAny = true;
                 const unitUSD = usdSubtotal / qty;
