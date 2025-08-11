@@ -489,98 +489,38 @@ function calculatePrice(formData) {
       
       finalProductPricesConverted[fruitType] = {};
 
-      for (let productName in productBaseCosts[fruitType]) {
-        if (productName.startsWith('_')) continue;
+        for (let productName in productBaseCosts[fruitType]) {
+          if (productName.startsWith('_')) continue;
 
-        let baseProductPrice = productBaseCosts[fruitType][productName]; // Already converted
-        let productPortion = (fruitBase > 0) ? (baseProductPrice / fruitBase) : 0;
-        
-        Logger.log(`=== Product ${productName} in ${fruitType} (Currency: ${currency}) ===`);
-        Logger.log(`Base price (converted): ${baseProductPrice} ${currency}`);
-        
-        // Calculate potential discount amounts (exact values, no rounding yet)
-        let potentialBulkDiscount = fruitTotalBulkDiscount * productPortion;
-        let potentialRegionDiscount = baseProductPrice * regionDiscountDecimal;
-        let potentialPaymentDiscount = baseProductPrice * paymentFrequencyDiscountDecimal;
-        let potentialDiscretionaryDiscount = baseProductPrice * discretionaryDiscountCalcDecimal;
-        
-        // --- APPLY CURRENCY CONVERSION TO MINIMUM PRICE ---
-        let minTotalPriceValue = minimumTotalPrices[productName];
-        let hasMinimumPrice = minTotalPriceValue !== undefined && minTotalPriceValue !== null && !isNaN(parseFloat(minTotalPriceValue));
-        let minimumPriceConverted = hasMinimumPrice ? parseFloat(minTotalPriceValue) * currencyRate : 0;
-        
-        Logger.log(`Minimum price for ${productName}: NZD=${minTotalPriceValue}, Converted=${minimumPriceConverted} ${currency}`);
-        
-        let finalProductPrice = 0;
-        let appliedBulkDiscount = 0;
-        let appliedRegionDiscount = 0;
-        let appliedPaymentDiscount = 0;
-        let appliedDiscretionaryDiscount = 0;
+          let baseProductPrice = productBaseCosts[fruitType][productName]; // Already converted and min-enforced in Step 2
+          let productPortion = (fruitBase > 0) ? (baseProductPrice / fruitBase) : 0;
 
-        // NEW CASCADING LOGIC - Test with rounded camera (add-ons calculated later with rounded products)
-        if (baseProductPrice >= minimumPriceConverted) {
-          Logger.log(`Product ${productName}: Base price >= minimum, applying cascading logic`);
-          
-          // Try all discounts first - test with rounded camera only (add-ons calculated later)
-          let testPrice = baseProductPrice + roundedCameraRental - potentialBulkDiscount - potentialRegionDiscount - potentialPaymentDiscount - potentialDiscretionaryDiscount;
-          if (testPrice >= minimumPriceConverted) {
-            // All discounts can be applied
-            finalProductPrice = baseProductPrice;
-            appliedBulkDiscount = potentialBulkDiscount;
-            appliedRegionDiscount = potentialRegionDiscount;
-            appliedPaymentDiscount = potentialPaymentDiscount;
-            appliedDiscretionaryDiscount = potentialDiscretionaryDiscount;
-            Logger.log(`All discounts applied for ${productName}`);
-          } else {
-            // Try without bulk discount
-            testPrice = baseProductPrice + roundedCameraRental - potentialRegionDiscount - potentialPaymentDiscount - potentialDiscretionaryDiscount;
-            if (testPrice >= minimumPriceConverted) {
-              finalProductPrice = baseProductPrice;
-              appliedRegionDiscount = potentialRegionDiscount;
-              appliedPaymentDiscount = potentialPaymentDiscount;
-              appliedDiscretionaryDiscount = potentialDiscretionaryDiscount;
-              Logger.log(`Applied discounts except bulk for ${productName}`);
-            } else {
-              // Try without region discount
-              testPrice = baseProductPrice + roundedCameraRental - potentialPaymentDiscount - potentialDiscretionaryDiscount;
-              if (testPrice >= minimumPriceConverted) {
-                finalProductPrice = baseProductPrice;
-                appliedPaymentDiscount = potentialPaymentDiscount;
-                appliedDiscretionaryDiscount = potentialDiscretionaryDiscount;
-                Logger.log(`Applied payment and discretionary discounts only for ${productName}`);
-              } else {
-                // Try with only payment discount
-                testPrice = baseProductPrice + roundedCameraRental - potentialPaymentDiscount;
-                if (testPrice >= minimumPriceConverted) {
-                  finalProductPrice = baseProductPrice;
-                  appliedPaymentDiscount = potentialPaymentDiscount;
-                  Logger.log(`Applied payment discount only for ${productName}`);
-                } else {
-                  // Use minimum price
-                  finalProductPrice = minimumPriceConverted;
-                  totalMinPriceAdjustments += (minimumPriceConverted - baseProductPrice);
-                  Logger.log(`Using minimum price for ${productName}`);
-                }
-              }
-            }
-          }
-        } else {
-          // Product < Minimum price, return Minimum Price
-          finalProductPrice = minimumPriceConverted;
-          totalMinPriceAdjustments += (minimumPriceConverted - baseProductPrice);
-          Logger.log(`Product ${productName}: Base price < minimum, using minimum price`);
+          Logger.log(`=== Product ${productName} in ${fruitType} (Currency: ${currency}) ===`);
+          Logger.log(`Base price (converted, min-enforced): ${baseProductPrice} ${currency}`);
+
+          // Potential discounts (exact values, accumulated globally later)
+          let potentialBulkDiscount = fruitTotalBulkDiscount * productPortion;
+          let potentialRegionDiscount = baseProductPrice * regionDiscountDecimal;
+          let potentialPaymentDiscount = baseProductPrice * paymentFrequencyDiscountDecimal;
+          let potentialDiscretionaryDiscount = baseProductPrice * discretionaryDiscountCalcDecimal;
+
+          // Minimum price info (for logs only)
+          let minTotalPriceValue = minimumTotalPrices[productName];
+          let hasMinimumPrice = minTotalPriceValue !== undefined && minTotalPriceValue !== null && !isNaN(parseFloat(minTotalPriceValue));
+          let minimumPriceConverted = hasMinimumPrice ? parseFloat(minTotalPriceValue) * currencyRate : 0;
+          Logger.log(`Minimum price (converted): ${minimumPriceConverted} ${currency}`);
+
+          // Final product price is the base (already max(base, min)) — do not override with minimum again here
+          let finalProductPrice = baseProductPrice;
+          finalProductPricesConverted[fruitType][productName] = finalProductPrice;
+          Logger.log(`Final product price (pre-discounts): ${finalProductPrice} ${currency}`);
+
+          // Accumulate ALL discounts; they will be applied at the totals stage
+          totalAppliedBulkDiscount += potentialBulkDiscount;
+          totalAppliedRegionDiscount += potentialRegionDiscount;
+          totalAppliedPaymentDiscount += potentialPaymentDiscount;
+          totalAppliedDiscretionaryDiscount += potentialDiscretionaryDiscount;
         }
-
-        Logger.log(`Final price for ${productName}: ${finalProductPrice} ${currency}`);
-        
-        finalProductPricesConverted[fruitType][productName] = finalProductPrice;
-        
-        // Accumulate applied discounts
-        totalAppliedBulkDiscount += appliedBulkDiscount;
-        totalAppliedRegionDiscount += appliedRegionDiscount;
-        totalAppliedPaymentDiscount += appliedPaymentDiscount;
-        totalAppliedDiscretionaryDiscount += appliedDiscretionaryDiscount;
-      }
     }
 
     // --- STEP 4: Round up individual product prices and calculate rounded products total ---
