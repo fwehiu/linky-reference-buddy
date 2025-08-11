@@ -2166,9 +2166,10 @@
       const optsDiv = document.getElementById('cameraOptions');
       const cb = document.getElementById('cameraRental');
       
-      optsDiv.style.display = cust === 'Packer' ? 'block' : 'none';
+      // Hide camera options when Packer is selected
+      optsDiv.style.display = cust === 'Packer' ? 'none' : 'block';
       
-      if (cust !== 'Packer') {
+      if (cust === 'Packer') {
         cb.checked = false;
         toggleCameraCount();
       }
