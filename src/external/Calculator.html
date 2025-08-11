@@ -2516,15 +2516,17 @@
       const rentalTotalElement = document.getElementById('rentalAddonsTotal');
       if (rentalSection && rentalItemsContainer && rentalTotalElement) {
         const selectedCurrency = result.currency || 'NZD';
-        if (result.rentalAddOnTotalUSD > 0 && result.rentalAddOnCosts) {
-          rentalSection.style.display = 'block';
-          rentalItemsContainer.innerHTML = '';
+        rentalSection.style.display = 'block';
+        rentalItemsContainer.innerHTML = '';
 
-          let totalRounded = 0;
+        let hasAny = false;
+        let totalRounded = 0;
+        if (result.rentalAddOnCosts && Object.keys(result.rentalAddOnCosts).length > 0) {
           for (const [name, usdSubtotal] of Object.entries(result.rentalAddOnCosts)) {
             if (usdSubtotal > 0) {
               const qty = parseInt(rentalAddOnSelections[name] || 0, 10) || 0;
               if (qty > 0) {
+                hasAny = true;
                 const unitUSD = usdSubtotal / qty;
                 const unitConverted = convertUSDToSelected(unitUSD, selectedCurrency);
                 const unitRounded = Math.ceil(unitConverted);
@@ -2547,10 +2549,13 @@
               }
             }
           }
+        }
 
-          rentalTotalElement.textContent = formatCurrencyExact(totalRounded, selectedCurrency);
+        if (!hasAny) {
+          rentalItemsContainer.innerHTML = '<div class="text-gray-500 italic">No rental add-on products selected</div>';
+          rentalTotalElement.textContent = formatCurrencyExact(0, selectedCurrency);
         } else {
-          rentalSection.style.display = 'none';
+          rentalTotalElement.textContent = formatCurrencyExact(totalRounded, selectedCurrency);
         }
       }
       
