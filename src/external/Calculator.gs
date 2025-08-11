@@ -702,6 +702,7 @@ function calculatePrice(formData) {
     // One-off add-on products from Base Rates (USD), added last to Year 1 only with no discounts
     var oneOffAddOnTotalUSD = 0;
     var oneOffAddOnBreakdown = {};
+    var oneOffAddOnQuantities = {};
     try {
       var oneOffSelections = Array.isArray(formData.oneOffAddOns) ? formData.oneOffAddOns : [];
       var oneOffCatalog = (data && data.oneOffAddOnProducts) || [];
@@ -715,6 +716,7 @@ function calculatePrice(formData) {
         if (subtotal > 0) {
           oneOffAddOnTotalUSD += subtotal;
           oneOffAddOnBreakdown[nm] = (oneOffAddOnBreakdown[nm] || 0) + subtotal;
+          oneOffAddOnQuantities[nm] = (oneOffAddOnQuantities[nm] || 0) + qty;
         }
       });
     } catch (e) {
@@ -724,6 +726,7 @@ function calculatePrice(formData) {
     // Rental add-on products (USD per year), added last and repeated every year, no discounts
     var rentalAddOnTotalUSD = 0;
     var rentalAddOnBreakdown = {};
+    var rentalAddOnQuantities = {};
     try {
       var rentalSelections = Array.isArray(formData.rentalAddOns) ? formData.rentalAddOns : [];
       var rentalCatalog = (data && data.rentalAddOnProducts) || [];
@@ -737,6 +740,7 @@ function calculatePrice(formData) {
         if (subtotal > 0) {
           rentalAddOnTotalUSD += subtotal;
           rentalAddOnBreakdown[nm] = (rentalAddOnBreakdown[nm] || 0) + subtotal;
+          rentalAddOnQuantities[nm] = (rentalAddOnQuantities[nm] || 0) + qty;
         }
       });
     } catch (e) {
@@ -844,8 +848,10 @@ function calculatePrice(formData) {
       addOnCosts: addOnCosts, 
       totalAddOnCost: totalAddOnCost, 
       oneOffAddOnCosts: oneOffAddOnBreakdown,
+      oneOffAddOnQuantities: oneOffAddOnQuantities,
       oneOffAddOnTotalUSD: oneOffAddOnTotalUSD,
       rentalAddOnCosts: rentalAddOnBreakdown,
+      rentalAddOnQuantities: rentalAddOnQuantities,
       rentalAddOnTotalUSD: rentalAddOnTotalUSD,
       finalYear1Cost: finalYear1Cost, 
       totalContractValue: totalContractValue, 
@@ -934,20 +940,44 @@ function createDocReport(resultData, templateId) {
     let addOnBreakdownString = 'N/A';
     if (resultData.addOnCosts && Object.keys(resultData.addOnCosts).length > 0) {
       let addOnLines = [];
-      
       // Add total first
       addOnLines.push(`Total Add-ons: ${formatCurrencyValue(resultData.totalAddOnCost || 0)}`);
-      
       for (let addOnName in resultData.addOnCosts) {
         const cost = resultData.addOnCosts[addOnName];
         if (cost > 0) {
           addOnLines.push(`${addOnName}: ${formatCurrencyValue(cost)}`);
         }
       }
-      
-      if (addOnLines.length > 1) { // More than just total
+      if (addOnLines.length > 1) {
         addOnBreakdownString = addOnLines.join('\n');
       }
+    }
+
+    // Build detailed strings for one-off and annual add-ons (product (quantity): currency total)
+    let oneOffAddOnDetailsString = 'N/A';
+    if (resultData.oneOffAddOnCosts && resultData.oneOffAddOnQuantities) {
+      const lines = Object.keys(resultData.oneOffAddOnCosts).map(name => {
+        const qty = resultData.oneOffAddOnQuantities[name] || 0;
+        const total = resultData.oneOffAddOnCosts[name] || 0;
+        if (qty > 0 && total > 0) {
+          return `${name} (${qty}): ${formatCurrencyValue(total)}`;
+        }
+        return null;
+      }).filter(Boolean);
+      if (lines.length) oneOffAddOnDetailsString = lines.join('\n');
+    }
+
+    let annualAddOnDetailsString = 'N/A';
+    if (resultData.rentalAddOnCosts && resultData.rentalAddOnQuantities) {
+      const lines = Object.keys(resultData.rentalAddOnCosts).map(name => {
+        const qty = resultData.rentalAddOnQuantities[name] || 0;
+        const total = resultData.rentalAddOnCosts[name] || 0;
+        if (qty > 0 && total > 0) {
+          return `${name} (${qty}): ${formatCurrencyValue(total)}`;
+        }
+        return null;
+      }).filter(Boolean);
+      if (lines.length) annualAddOnDetailsString = lines.join('\n');
     }
     
     // Calculate discount total: Products + Add-ons + Camera - Final Year 1 Cost
@@ -988,8 +1018,8 @@ function createDocReport(resultData, templateId) {
       '{{InflationSavings}}': resultData.contractYears > 1 && resultData.inflationSavings > 0 ? formatCurrencyValue(resultData.inflationSavings) : 'N/A', 
       '{{TotalContractValue}}': resultData.contractYears > 1 ? formatCurrencyValue(resultData.totalContractValue) : 'N/A', 
       '{{InflationStatus}}': resultData.contractYears > 1 ? 'Inflation Waived (Multi-Year Commitment)' : '1-Year Term', 
-      '{{OneOffAddOnBreakdown}}': formatCurrencyValue(resultData.oneOffAddOnTotalUSD || 0),
-      '{{AnnualAddOnBreakdown}}': formatCurrencyValue(resultData.rentalAddOnTotalUSD || 0),
+      '{{OneOffAddOnBreakdown}}': oneOffAddOnDetailsString,
+      '{{AnnualAddOnBreakdown}}': annualAddOnDetailsString,
     };
 
     Logger.log("Accessing template file via DriveApp, ID: " + templateId); 

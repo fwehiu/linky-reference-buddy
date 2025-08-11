@@ -719,18 +719,29 @@ function calculatePrice(formData) {
 
     var rentalAddOnCosts = {};
     var rentalAddOnTotalUSD = 0;
+    var rentalAddOnQtyMap = {};
     (rentalAddOns || []).forEach(function(entry){
       var nm = String((entry && (entry.name || entry.Name)) || '').trim();
       var qty = parseFloat(entry && (entry.qty || entry.quantity)) || 0;
       if (!nm || qty <= 0) return;
       var unitUSD = parseFloat(rentalAddOnPriceMap[nm]) || 0;
       var subtotalUSD = unitUSD * qty;
+      rentalAddOnQtyMap[nm] = (rentalAddOnQtyMap[nm] || 0) + qty;
       rentalAddOnCosts[nm] = (rentalAddOnCosts[nm] || 0) + subtotalUSD;
       rentalAddOnTotalUSD += subtotalUSD;
     });
     // Convert rental add-ons to selected currency for totals (UI will still show USD breakdown)
     var rentalAddOnTotalConverted = rentalAddOnTotalUSD * currencyRate;
     totalAddOnCost += rentalAddOnTotalConverted;
+
+    // Build rental add-on details (converted to selected currency)
+    var rentalAddOnCostsConverted = {};
+    for (var rnm in rentalAddOnCosts) {
+      rentalAddOnCostsConverted[rnm] = (rentalAddOnCosts[rnm] || 0) * currencyRate;
+    }
+    var rentalAddOnDetails = Object.keys(rentalAddOnQtyMap).map(function(nm){
+      return { name: nm, quantity: rentalAddOnQtyMap[nm], total: rentalAddOnCostsConverted[nm] || 0 };
+    });
 
     // --- STEP 6: Round up the discount amounts and calculate final cost ---
     var roundedBulkDiscount = roundUpToNearestHundred(totalAppliedBulkDiscount);
@@ -829,6 +840,8 @@ function calculatePrice(formData) {
       addOnCosts: addOnCosts, 
       totalAddOnCost: totalAddOnCost, 
       totalOneOffAddOnCost: (typeof totalOneOffAddOnCost !== 'undefined' ? totalOneOffAddOnCost : 0), 
+      oneOffAddOnDetails: oneOffAddOnDetails,
+      rentalAddOnDetails: rentalAddOnDetails,
       finalYear1Cost: finalYear1Cost, 
       totalContractValue: totalContractValue, 
       inflationSavings: inflationSavings, 
@@ -916,20 +929,34 @@ function createDocReport(resultData, templateId) {
     let addOnBreakdownString = 'N/A';
     if (resultData.addOnCosts && Object.keys(resultData.addOnCosts).length > 0) {
       let addOnLines = [];
-      
       // Add total first
       addOnLines.push(`Total Add-ons: ${formatCurrencyValue(resultData.totalAddOnCost || 0)}`);
-      
       for (let addOnName in resultData.addOnCosts) {
         const cost = resultData.addOnCosts[addOnName];
         if (cost > 0) {
           addOnLines.push(`${addOnName}: ${formatCurrencyValue(cost)}`);
         }
       }
-      
-      if (addOnLines.length > 1) { // More than just total
+      if (addOnLines.length > 1) {
         addOnBreakdownString = addOnLines.join('\n');
       }
+    }
+
+    // Build detailed strings for one-off and annual add-ons (product (quantity): currency total)
+    let oneOffAddOnDetailsString = 'N/A';
+    if (Array.isArray(resultData.oneOffAddOnDetails) && resultData.oneOffAddOnDetails.length > 0) {
+      const lines = resultData.oneOffAddOnDetails
+        .filter(d => d && d.quantity > 0 && d.total > 0)
+        .map(d => `${d.name} (${d.quantity}): ${formatCurrencyValue(d.total)}`);
+      if (lines.length) oneOffAddOnDetailsString = lines.join('\n');
+    }
+
+    let annualAddOnDetailsString = 'N/A';
+    if (Array.isArray(resultData.rentalAddOnDetails) && resultData.rentalAddOnDetails.length > 0) {
+      const lines = resultData.rentalAddOnDetails
+        .filter(d => d && d.quantity > 0 && d.total > 0)
+        .map(d => `${d.name} (${d.quantity}): ${formatCurrencyValue(d.total)}`);
+      if (lines.length) annualAddOnDetailsString = lines.join('\n');
     }
     
     // Calculate discount total: Products + Add-ons + Camera - Final Year 1 Cost
@@ -970,8 +997,8 @@ function createDocReport(resultData, templateId) {
       '{{InflationSavings}}': resultData.contractYears > 1 && resultData.inflationSavings > 0 ? formatCurrencyValue(resultData.inflationSavings) : 'N/A', 
       '{{TotalContractValue}}': resultData.contractYears > 1 ? formatCurrencyValue(resultData.totalContractValue) : 'N/A', 
       '{{InflationStatus}}': resultData.contractYears > 1 ? 'Inflation Waived (Multi-Year Commitment)' : '1-Year Term', 
-      '{{OneOffAddOnBreakdown}}': formatCurrencyValue(resultData.totalOneOffAddOnCost || 0),
-      '{{AnnualAddOnBreakdown}}': formatCurrencyValue(Math.max(0, (resultData.totalAddOnCost || 0) - (resultData.totalOneOffAddOnCost || 0))),
+      '{{OneOffAddOnBreakdown}}': oneOffAddOnDetailsString,
+      '{{AnnualAddOnBreakdown}}': annualAddOnDetailsString,
     };
 
     Logger.log("Accessing template file via DriveApp, ID: " + templateId); 
