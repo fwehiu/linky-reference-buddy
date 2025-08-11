@@ -420,6 +420,13 @@ function calculatePrice(formData) {
           }
         }
 
+        // Enforce product minimum price rule (NZD): cost = max(baseRate*Tonnage, product minimum)
+        const minNZDRaw = data.minimumPrices ? data.minimumPrices[productName] : null;
+        const minNZD = (minNZDRaw !== undefined && minNZDRaw !== null && !isNaN(parseFloat(minNZDRaw))) ? parseFloat(minNZDRaw) : 0;
+        if (minNZD > 0) {
+          productBaseCostNZD = Math.max(productBaseCostNZD, minNZD);
+        }
+
         // --- APPLY CURRENCY CONVERSION TO BASE COST IMMEDIATELY ---
         let productBaseCostConverted = productBaseCostNZD * currencyRate;
         Logger.log(`Product ${productName}: Base cost NZD=${productBaseCostNZD}, Converted=${productBaseCostConverted} ${currency}`);
