@@ -966,7 +966,11 @@ function createDocReport(resultData, templateId) {
     if (Array.isArray(resultData.rentalAddOnDetails) && resultData.rentalAddOnDetails.length > 0) {
       const lines = resultData.rentalAddOnDetails
         .filter(d => d && d.quantity > 0 && d.total > 0)
-        .map(d => `${d.name} (${d.quantity}): ${formatCurrencyValue(d.total)}`);
+        .map(d => {
+          const unitRounded = Math.ceil(d.total / d.quantity);
+          const totalRounded = unitRounded * d.quantity;
+          return `${d.name} (${d.quantity}): ${formatCurrencyValue(totalRounded)}`;
+        });
       if (lines.length) annualAddOnDetailsString = lines.join('\n');
     }
     
