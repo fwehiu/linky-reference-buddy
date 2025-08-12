@@ -772,7 +772,7 @@ function calculatePrice(formData) {
     // --- STEP 7: Calculate Multi-Year Values (Year 1 includes one-off add-ons once) ---
     var recurringPerYear = finalYear1Cost - (typeof totalOneOffAddOnCost !== 'undefined' ? totalOneOffAddOnCost : 0);
     var standardAnnualCost = recurringPerYear + (discountFirstYearOnly ? roundedDiscretionaryDiscount : 0);
-    var totalContractValue = (recurringPerYear * contractYears) + (typeof totalOneOffAddOnCost !== 'undefined' ? totalOneOffAddOnCost : 0);
+    var totalContractValue = finalYear1Cost + (contractYears > 1 ? standardAnnualCost * (contractYears - 1) : 0);
     var inflationSavings = 0;
     
     if (contractYears > 1) { 

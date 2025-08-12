@@ -757,17 +757,7 @@ function calculatePrice(formData) {
     var standardAnnualCost = baseYear1Cost + rentalAddOnTotalUSD + (discountFirstYearOnly ? roundedDiscretionaryDiscount : 0);
 
     // --- STEP 7: Calculate Multi-Year Values (do not multiply one-off add-ons; rentals recur each year) ---
-    var totalContractValue = 0;
-    if (contractYears <= 1) {
-      totalContractValue = baseYear1Cost + rentalAddOnTotalUSD + oneOffAddOnTotalUSD;
-    } else {
-      if (discountFirstYearOnly) {
-        var recurringBase = baseYear1Cost + roundedDiscretionaryDiscount; // add back discretionary discount for subsequent years
-        totalContractValue = baseYear1Cost + (contractYears - 1) * recurringBase + (rentalAddOnTotalUSD * contractYears) + oneOffAddOnTotalUSD;
-      } else {
-        totalContractValue = ((baseYear1Cost + rentalAddOnTotalUSD) * contractYears) + oneOffAddOnTotalUSD; 
-      }
-    }
+    var totalContractValue = finalYear1Cost + (contractYears > 1 ? standardAnnualCost * (contractYears - 1) : 0);
     var inflationSavings = 0;
     
     if (contractYears > 1) { 
