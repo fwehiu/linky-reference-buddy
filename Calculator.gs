@@ -337,6 +337,7 @@ function calculatePrice(formData) {
     var includeCamera = formData.includeCamera; 
     var cameraCount = formData.cameraCount; 
     var discretionaryDiscountInputPercent = parseFloat(formData.discretionaryDiscount) || 0; 
+    var discountFirstYearOnly = !!formData.discountFirstYearOnly;
     var contractYears = parseInt(formData.contractYears) || 1; 
     var companyName = formData.companyName || ""; 
     var companyAddress = formData.companyAddress || "";
@@ -771,6 +772,7 @@ function calculatePrice(formData) {
 
     // --- STEP 7: Calculate Multi-Year Values (Year 1 includes one-off add-ons once) ---
     var recurringPerYear = finalYear1Cost - (typeof totalOneOffAddOnCost !== 'undefined' ? totalOneOffAddOnCost : 0);
+    var standardAnnualCost = recurringPerYear + (discountFirstYearOnly ? roundedDiscretionaryDiscount : 0);
     var totalContractValue = (recurringPerYear * contractYears) + (typeof totalOneOffAddOnCost !== 'undefined' ? totalOneOffAddOnCost : 0);
     var inflationSavings = 0;
     
@@ -849,6 +851,7 @@ function calculatePrice(formData) {
       oneOffAddOnDetails: oneOffAddOnDetails,
       rentalAddOnDetails: rentalAddOnDetails,
       finalYear1Cost: finalYear1Cost, 
+      standardAnnualCost: standardAnnualCost,
       totalContractValue: totalContractValue, 
       inflationSavings: inflationSavings, 
       totalMinPriceAdjustments: totalMinPriceAdjustments, 
@@ -1002,6 +1005,7 @@ function createDocReport(resultData, templateId) {
       '{{AddonTotal}}': formatCurrencyValue(resultData.totalAddOnCost), 
       '{{CameraRental}}': formatAmount(resultData.cameraRental), 
       '{{Year1Cost}}': formatCurrencyValue(resultData.finalYear1Cost), 
+      '{{StandardAnnualCost}}': formatCurrencyValue(resultData.standardAnnualCost), 
       '{{InflationSavings}}': resultData.contractYears > 1 && resultData.inflationSavings > 0 ? formatCurrencyValue(resultData.inflationSavings) : 'N/A', 
       '{{TotalContractValue}}': resultData.contractYears > 1 ? formatCurrencyValue(resultData.totalContractValue) : 'N/A', 
       '{{InflationStatus}}': resultData.contractYears > 1 ? 'Inflation Waived (Multi-Year Commitment)' : '1-Year Term', 

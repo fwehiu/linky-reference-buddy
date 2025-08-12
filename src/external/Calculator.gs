@@ -751,6 +751,9 @@ function calculatePrice(formData) {
     var finalYear1Cost = baseYear1Cost + rentalAddOnTotalUSD + oneOffAddOnTotalUSD;
     Logger.log(`Final Calculation (${currency}): Base(${baseYear1Cost}) + Rental(${rentalAddOnTotalUSD}) + One-off(${oneOffAddOnTotalUSD}) = ${finalYear1Cost}`);
 
+    // Standard annual cost for years after Year 1 (exclude one-off add-ons; add back discretionary if first-year only)
+    var standardAnnualCost = baseYear1Cost + rentalAddOnTotalUSD + (discountFirstYearOnly ? roundedDiscretionaryDiscount : 0);
+
     // --- STEP 7: Calculate Multi-Year Values (do not multiply one-off add-ons; rentals recur each year) ---
     var totalContractValue = 0;
     if (contractYears <= 1) {
@@ -855,6 +858,7 @@ function calculatePrice(formData) {
       rentalAddOnQuantities: rentalAddOnQuantities,
       rentalAddOnTotalUSD: rentalAddOnTotalUSD,
       finalYear1Cost: finalYear1Cost, 
+      standardAnnualCost: standardAnnualCost,
       totalContractValue: totalContractValue, 
       inflationSavings: inflationSavings, 
       totalMinPriceAdjustments: totalMinPriceAdjustments, 
@@ -1018,6 +1022,7 @@ function createDocReport(resultData, templateId) {
       '{{AddonTotal}}': formatCurrencyValue(resultData.totalAddOnCost), 
       '{{CameraRental}}': formatAmount(resultData.cameraRental), 
       '{{Year1Cost}}': formatCurrencyValue(resultData.finalYear1Cost), 
+      '{{StandardAnnualCost}}': formatCurrencyValue(resultData.standardAnnualCost), 
       '{{InflationSavings}}': resultData.contractYears > 1 && resultData.inflationSavings > 0 ? formatCurrencyValue(resultData.inflationSavings) : 'N/A', 
       '{{TotalContractValue}}': resultData.contractYears > 1 ? formatCurrencyValue(resultData.totalContractValue) : 'N/A', 
       '{{InflationStatus}}': resultData.contractYears > 1 ? 'Inflation Waived (Multi-Year Commitment)' : '1-Year Term', 
