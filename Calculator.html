@@ -44,6 +44,8 @@
       color: var(--primary-color); 
       font-size: 16px; 
       line-height: 1.6;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
     
     body { 
@@ -351,7 +353,7 @@
       background-color: var(--white-color);
       border-radius: var(--border-radius);
       box-shadow: var(--shadow-md);
-      overflow: hidden;
+      overflow: visible;
       transition: var(--transition);
       animation: fadeIn 0.5s ease;
     }
