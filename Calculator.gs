@@ -7,7 +7,7 @@
 const BULK_DISCOUNT_SHEET_NAME = 'Bulk Discounts';
 const BASE_RATES_SHEET_NAME = 'Base Rates per Fruit Type';
 const CAMERA_PRICE_CELL = 'E3';
-const INFLATION_RATE_CELL = 'I3';
+const INFLATION_RATE_CELL = 'D3';
 const MIN_PRICE_START_ROW = 6;
 const DOC_TEMPLATE_ID = '1sUO5ivgJELWlY6aMEWZ1vI5chfQo9ONCbw3Wcef5p4I';
 
@@ -339,6 +339,7 @@ function calculatePrice(formData) {
     var discretionaryDiscountInputPercent = parseFloat(formData.discretionaryDiscount) || 0; 
     var contractYears = parseInt(formData.contractYears) || 1; 
     var companyName = formData.companyName || ""; 
+    var companyAddress = formData.companyAddress || "";
     var salesContact = formData.salesContact || ""; 
     var oneOffAddOns = formData.oneOffAddOns || []; 
     var rentalAddOns = formData.rentalAddOns || []; 
@@ -854,6 +855,7 @@ function calculatePrice(formData) {
       finalTotal: finalYear1Cost, 
       planString: planString.trim(), 
       companyName: companyName, 
+      companyAddress: companyAddress,
       salesContact: salesContact,
       products: productsArray,
       discounts: discountsArray,
@@ -978,6 +980,7 @@ function createDocReport(resultData, templateId) {
       '{{CalculationDate}}': new Date().toLocaleDateString('en-NZ', { year: 'numeric', month: 'short', day: 'numeric'}), 
       '{{CustomerType}}': resultData.customerType || 'N/A', 
       '{{Company}}': naIfEmpty(resultData.companyName), 
+      '{{CompanyAddress}}': naIfEmpty(resultData.companyAddress),
       '{{Sales}}': naIfEmpty(resultData.salesContact), 
       '{{Plan}}': naIfEmpty(resultData.planString), 
       '{{AddOnPlan}}': addOnPlanString,

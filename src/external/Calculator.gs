@@ -333,6 +333,7 @@ function calculatePrice(formData) {
     var discountFirstYearOnly = !!formData.discountFirstYearOnly;
     var contractYears = parseInt(formData.contractYears) || 1; 
     var companyName = formData.companyName || ""; 
+    var companyAddress = formData.companyAddress || "";
     var salesContact = formData.salesContact || ""; 
     
     var fruitTypes = customerType === 'Grower' ? data.growerTypes : data.packerTypes; 
@@ -860,6 +861,7 @@ function calculatePrice(formData) {
       finalTotal: finalYear1Cost, 
       planString: planString.trim(), 
       companyName: companyName, 
+      companyAddress: companyAddress,
       salesContact: salesContact,
       products: productsArray,
       discounts: discountsArray,
@@ -994,6 +996,7 @@ function createDocReport(resultData, templateId) {
       '{{CalculationDate}}': new Date().toLocaleDateString('en-NZ', { year: 'numeric', month: 'short', day: 'numeric'}), 
       '{{CustomerType}}': resultData.customerType || 'N/A', 
       '{{Company}}': naIfEmpty(resultData.companyName), 
+      '{{CompanyAddress}}': naIfEmpty(resultData.companyAddress),
       '{{Sales}}': naIfEmpty(resultData.salesContact), 
       '{{Plan}}': naIfEmpty(resultData.planString), 
       '{{AddOnPlan}}': addOnPlanString,
