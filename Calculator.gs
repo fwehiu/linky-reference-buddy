@@ -958,7 +958,11 @@ function createDocReport(resultData, templateId) {
     if (Array.isArray(resultData.oneOffAddOnDetails) && resultData.oneOffAddOnDetails.length > 0) {
       const lines = resultData.oneOffAddOnDetails
         .filter(d => d && d.quantity > 0 && d.total > 0)
-        .map(d => `${d.name} (${d.quantity}): ${formatCurrencyValue(d.total)}`);
+        .map(d => {
+          const unitRounded = Math.ceil(d.total / d.quantity);
+          const totalRounded = unitRounded * d.quantity;
+          return `${d.name} (${d.quantity}): ${formatCurrencyValue(totalRounded)}`;
+        });
       if (lines.length) oneOffAddOnDetailsString = lines.join('\n');
     }
 

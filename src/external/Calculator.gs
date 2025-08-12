@@ -966,7 +966,9 @@ function createDocReport(resultData, templateId) {
         const qty = resultData.oneOffAddOnQuantities[name] || 0;
         const total = resultData.oneOffAddOnCosts[name] || 0;
         if (qty > 0 && total > 0) {
-          return `${name} (${qty}): ${formatCurrencyValue(total)}`;
+          const unitRounded = Math.ceil(total / qty);
+          const totalRounded = unitRounded * qty;
+          return `${name} (${qty}): ${formatCurrencyValue(totalRounded)}`;
         }
         return null;
       }).filter(Boolean);
