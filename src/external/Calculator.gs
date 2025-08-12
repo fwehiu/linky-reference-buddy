@@ -1018,6 +1018,7 @@ function createDocReport(resultData, templateId) {
       '{{PaymentDiscountAmount}}': formatAmount(-resultData.paymentFrequencyDiscountAmount), 
       '{{DiscretionaryDiscountPercent}}': formatPercentValue(resultData.discretionaryDiscountPercentDecimal), 
       '{{DiscretionaryDiscountAmount}}': formatAmount(-resultData.discretionaryDiscountAmount), 
+      '{{Y1discount}}': (resultData.discretionaryFirstYearOnly && resultData.discretionaryDiscountPercentDecimal > 0) ? formatPercentValue(resultData.discretionaryDiscountPercentDecimal) : 'N/A', 
       '{{MinPriceAdjustment}}': formatAmount(resultData.totalMinPriceAdjustments), 
       '{{AddonTotal}}': formatCurrencyValue(resultData.totalAddOnCost), 
       '{{CameraRental}}': formatAmount(resultData.cameraRental), 
