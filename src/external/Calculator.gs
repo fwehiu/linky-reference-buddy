@@ -713,10 +713,11 @@ function calculatePrice(formData) {
         if (!nm || qty <= 0) return;
         var catalogItem = oneOffCatalog.find(function(it){ return String(it.name || '').trim() === nm; });
         var unit = catalogItem && typeof catalogItem.price !== 'undefined' ? (parseFloat(catalogItem.price) || 0) : 0;
-        var subtotal = unit * qty;
-        if (subtotal > 0) {
-          oneOffAddOnTotalUSD += subtotal;
-          oneOffAddOnBreakdown[nm] = (oneOffAddOnBreakdown[nm] || 0) + subtotal;
+        var unitRounded = Math.ceil(unit);
+        var subtotalRounded = unitRounded * qty;
+        if (subtotalRounded > 0) {
+          oneOffAddOnTotalUSD += subtotalRounded;
+          oneOffAddOnBreakdown[nm] = (oneOffAddOnBreakdown[nm] || 0) + subtotalRounded;
           oneOffAddOnQuantities[nm] = (oneOffAddOnQuantities[nm] || 0) + qty;
         }
       });
@@ -737,10 +738,11 @@ function calculatePrice(formData) {
         if (!nm || qty <= 0) return;
         var catalogItem = rentalCatalog.find(function(it){ return String(it.name || '').trim() === nm; });
         var unit = catalogItem && typeof catalogItem.price !== 'undefined' ? (parseFloat(catalogItem.price) || 0) : 0;
-        var subtotal = unit * qty;
-        if (subtotal > 0) {
-          rentalAddOnTotalUSD += subtotal;
-          rentalAddOnBreakdown[nm] = (rentalAddOnBreakdown[nm] || 0) + subtotal;
+        var unitRounded = Math.ceil(unit);
+        var subtotalRounded = unitRounded * qty;
+        if (subtotalRounded > 0) {
+          rentalAddOnTotalUSD += subtotalRounded;
+          rentalAddOnBreakdown[nm] = (rentalAddOnBreakdown[nm] || 0) + subtotalRounded;
           rentalAddOnQuantities[nm] = (rentalAddOnQuantities[nm] || 0) + qty;
         }
       });

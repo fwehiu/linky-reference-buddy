@@ -703,11 +703,13 @@ function calculatePrice(formData) {
       var qty = parseFloat(entry && (entry.qty || entry.quantity)) || 0;
       if (!nm || qty <= 0) return;
       var unitNZD = parseFloat(oneOffAddOnPriceMap[nm]) || 0;
-      var converted = unitNZD * qty * currencyRate;
-      // Do NOT round one-off add-ons; charge exact amount (added last, no discounts)
-      oneOffAddOnCosts[nm] = (oneOffAddOnCosts[nm] || 0) + converted;
+      var unitConverted = unitNZD * currencyRate;
+      var unitRounded = Math.ceil(unitConverted);
+      var totalRounded = unitRounded * qty;
+      // Round one-off add-ons per unit up to nearest whole currency before summing
+      oneOffAddOnCosts[nm] = (oneOffAddOnCosts[nm] || 0) + totalRounded;
       oneOffAddOnQtyMap[nm] = (oneOffAddOnQtyMap[nm] || 0) + qty;
-      totalOneOffAddOnCost += converted;
+      totalOneOffAddOnCost += totalRounded;
     });
     // Build one-off add-on details for reporting
     var oneOffAddOnDetails = Object.keys(oneOffAddOnCosts).map(function(nm){
@@ -718,37 +720,34 @@ function calculatePrice(formData) {
     }
     totalAddOnCost += totalOneOffAddOnCost;
     Logger.log(`One-off add-ons (${currency}): ${JSON.stringify(oneOffAddOnCosts)} | total: ${totalOneOffAddOnCost}`);
-    // --- STEP 5c: Rental Add-on Products (T2:U3) - USD per year, convert for totals ---
+    // --- STEP 5c: Rental Add-on Products (T2:U3) - USD per year, convert to selected currency and round per-unit ---
     var rentalAddOnPriceMap = {};
     (data.rentalAddOnProducts || []).forEach(function(item){
       if (item && item.name) { rentalAddOnPriceMap[String(item.name).trim()] = parseFloat(item.price) || 0; }
     });
 
-    var rentalAddOnCosts = {};
-    var rentalAddOnTotalUSD = 0;
     var rentalAddOnQtyMap = {};
+    var rentalAddOnCostsConverted = {};
+    var rentalAddOnTotalConverted = 0;
     (rentalAddOns || []).forEach(function(entry){
       var nm = String((entry && (entry.name || entry.Name)) || '').trim();
       var qty = parseFloat(entry && (entry.qty || entry.quantity)) || 0;
       if (!nm || qty <= 0) return;
       var unitUSD = parseFloat(rentalAddOnPriceMap[nm]) || 0;
-      var subtotalUSD = unitUSD * qty;
+      var unitConverted = unitUSD * currencyRate;
+      var unitRounded = Math.ceil(unitConverted);
+      var subtotalRounded = unitRounded * qty;
       rentalAddOnQtyMap[nm] = (rentalAddOnQtyMap[nm] || 0) + qty;
-      rentalAddOnCosts[nm] = (rentalAddOnCosts[nm] || 0) + subtotalUSD;
-      rentalAddOnTotalUSD += subtotalUSD;
+      rentalAddOnCostsConverted[nm] = (rentalAddOnCostsConverted[nm] || 0) + subtotalRounded;
+      rentalAddOnTotalConverted += subtotalRounded;
     });
-    // Convert rental add-ons to selected currency for totals (UI will still show USD breakdown)
-    var rentalAddOnTotalConverted = rentalAddOnTotalUSD * currencyRate;
-    totalAddOnCost += rentalAddOnTotalConverted;
 
-    // Build rental add-on details (converted to selected currency)
-    var rentalAddOnCostsConverted = {};
-    for (var rnm in rentalAddOnCosts) {
-      rentalAddOnCostsConverted[rnm] = (rentalAddOnCosts[rnm] || 0) * currencyRate;
-    }
+    // Build rental add-on details (already in selected currency, per-unit rounded)
     var rentalAddOnDetails = Object.keys(rentalAddOnQtyMap).map(function(nm){
       return { name: nm, quantity: rentalAddOnQtyMap[nm], total: rentalAddOnCostsConverted[nm] || 0 };
     });
+
+    totalAddOnCost += rentalAddOnTotalConverted;
 
     // --- STEP 6: Round up the discount amounts and calculate final cost ---
     var roundedBulkDiscount = roundUpToNearestHundred(totalAppliedBulkDiscount);
