@@ -996,6 +996,10 @@ function createDocReport(resultData, templateId) {
     const cameraCostText = hasCameras ? formatCurrencyValue(resultData.cameraRental) : '';
     const cameraRentalLabel = hasCameras ? 'Camera Rental:' : '';
     
+    // Annual discounts sum (region + payment + discretionary if not first-year-only)
+    const annualDiscountSum = (resultData.regionDiscountAmount || 0) + (resultData.paymentFrequencyDiscountAmount || 0) + (!resultData.discretionaryFirstYearOnly ? (resultData.discretionaryDiscountAmount || 0) : 0);
+    const discountsLabel = annualDiscountSum > 0 ? `Discounts: ${formatCurrencyValue(annualDiscountSum)}` : '';
+    
     const placeholders = { 
       '{{CalculationDate}}': new Date().toLocaleDateString('en-NZ', { year: 'numeric', month: 'short', day: 'numeric'}), 
       '{{CustomerType}}': resultData.customerType || 'N/A', 
@@ -1006,6 +1010,7 @@ function createDocReport(resultData, templateId) {
       '{{AddOnPlan}}': addOnPlanString,
       '{{ProductBreakdown}}': productBreakdownString,
       '{{DiscountTotal}}': formatCurrencyValue(discountTotal),
+      '{{Discounts}}': discountsLabel,
       '{{Region}}': resultData.region || 'N/A', 
       '{{Currency}}': currency, 
       '{{ContractYears}}': resultData.contractYears || 1, 
