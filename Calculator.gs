@@ -1100,6 +1100,217 @@ function createDocReport(resultData, templateId) {
   }
 }
 
+// --- Function to Create Google Doc Report ---
+function createGoogleDocReport(resultData, templateId) {
+  let tempFile = null; 
+  try { 
+    Logger.log("Starting createGoogleDocReport..."); 
+    if (!templateId) { 
+      throw new Error("Template ID missing."); 
+    } 
+    if (!resultData?.success) { 
+      throw new Error("Invalid result data."); 
+    } 
+    
+    const currency = resultData.currency || 'NZD'; 
+    const formatCurrencyValue = (val) => (typeof val === 'number' && !isNaN(val)) ? `${currency} ${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : `${currency} 0.00`; 
+    const formatPercentValue = (dec) => (typeof dec === 'number' && !isNaN(dec)) ? `${(dec * 100).toFixed(1)}%` : '0.0%'; 
+    const formatAmount = (val) => (typeof val === 'number' && !isNaN(val) && val !== 0) ? `${val < 0 ? '-' : '+'} ${currency} ${Math.abs(val).toFixed(2)}` : 'N/A'; 
+    const naIfEmpty = (val) => (val && String(val).trim() !== '') ? String(val).trim() : 'N/A'; 
+    
+    // Calculate rounded products total from individual rounded product prices
+    let roundedProductsTotal = 0;
+    if (resultData.productFinalPrices) {
+      for (let fruitType in resultData.productFinalPrices) {
+        for (let productName in resultData.productFinalPrices[fruitType]) {
+          roundedProductsTotal += resultData.productFinalPrices[fruitType][productName];
+        }
+      }
+    }
+    
+    // Create add-on plan string
+    let addOnPlanString = 'N/A';
+    if (resultData.addOnCosts && Object.keys(resultData.addOnCosts).length > 0) {
+      const addOnNames = Object.keys(resultData.addOnCosts).filter(name => resultData.addOnCosts[name] > 0);
+      if (addOnNames.length > 0) {
+        addOnPlanString = addOnNames.join(', ');
+      }
+    }
+    
+    // Create detailed product breakdown by fruit type
+    let productBreakdownString = 'N/A';
+    if (resultData.productFinalPrices && resultData.productTonnages) {
+      let breakdownLines = [];
+      for (let fruitType in resultData.productFinalPrices) {
+        let fruitProducts = [];
+        let fruitTotal = 0;
+        
+        for (let productName in resultData.productFinalPrices[fruitType]) {
+          const price = resultData.productFinalPrices[fruitType][productName];
+          const tonnage = resultData.productTonnages[fruitType] ? (resultData.productTonnages[fruitType][productName] || 0) : 0;
+          fruitTotal += price;
+          fruitProducts.push(`  ${productName} (${tonnage.toFixed(1)}t): ${formatCurrencyValue(price)}`);
+        }
+        
+        if (fruitProducts.length > 0) {
+          breakdownLines.push(`${fruitType} - Total: ${formatCurrencyValue(fruitTotal)}`);
+          breakdownLines.push(...fruitProducts);
+          breakdownLines.push(''); // Empty line between fruit types
+        }
+      }
+      
+      if (breakdownLines.length > 0) {
+        productBreakdownString = breakdownLines.join('\n');
+      }
+    }
+    
+    // Create detailed add-on breakdown by product
+    let addOnBreakdownString = 'N/A';
+    if (resultData.addOnCosts && Object.keys(resultData.addOnCosts).length > 0) {
+      let addOnLines = [];
+      // Add total first
+      addOnLines.push(`Total Add-ons: ${formatCurrencyValue(resultData.totalAddOnCost || 0)}`);
+      for (let addOnName in resultData.addOnCosts) {
+        const cost = resultData.addOnCosts[addOnName];
+        if (cost > 0) {
+          addOnLines.push(`${addOnName}: ${formatCurrencyValue(cost)}`);
+        }
+      }
+      if (addOnLines.length > 1) {
+        addOnBreakdownString = addOnLines.join('\n');
+      }
+    }
+
+    // Build detailed strings for one-off and annual add-ons (product (quantity): currency total)
+    let oneOffAddOnDetailsString = 'N/A';
+    if (Array.isArray(resultData.oneOffAddOnDetails) && resultData.oneOffAddOnDetails.length > 0) {
+      const lines = resultData.oneOffAddOnDetails
+        .filter(d => d && d.quantity > 0 && d.total > 0)
+        .map(d => {
+          const unitRounded = Math.ceil(d.total / d.quantity);
+          const totalRounded = unitRounded * d.quantity;
+          return `${d.name} (${d.quantity}): ${formatCurrencyValue(totalRounded)}`;
+        });
+      if (lines.length) oneOffAddOnDetailsString = lines.join('\n');
+    }
+
+    let annualAddOnDetailsString = 'N/A';
+    if (Array.isArray(resultData.rentalAddOnDetails) && resultData.rentalAddOnDetails.length > 0) {
+      const lines = resultData.rentalAddOnDetails
+        .filter(d => d && d.quantity > 0 && d.total > 0)
+        .map(d => {
+          const unitRounded = Math.ceil(d.total / d.quantity);
+          const totalRounded = unitRounded * d.quantity;
+          return `${d.name} (${d.quantity}): ${formatCurrencyValue(totalRounded)}`;
+        });
+      if (lines.length) annualAddOnDetailsString = lines.join('\n');
+    }
+    
+    // Calculate discount total: Products + Add-ons + Camera - Final Year 1 Cost
+    const discountTotal = roundedProductsTotal + (resultData.totalAddOnCost || 0) + (resultData.cameraRental || 0) - (resultData.finalYear1Cost || 0);
+    
+    // Determine camera information - use blank strings instead of "N/A"
+    const cameraCount = resultData.cameraCount || 0;
+    const hasCameras = resultData.cameraRental > 0;
+    const cameraCountText = hasCameras ? cameraCount.toString() : '';
+    const cameraCostText = hasCameras ? formatCurrencyValue(resultData.cameraRental) : '';
+    const cameraRentalLabel = hasCameras ? 'Camera Rental:' : '';
+    
+    // Annual discounts sum (region + payment + discretionary if not first-year-only)
+    const annualDiscountSum = (resultData.regionDiscountAmount || 0) + (resultData.paymentFrequencyDiscountAmount || 0) + (!resultData.discretionaryFirstYearOnly ? (resultData.discretionaryDiscountAmount || 0) : 0);
+    const discountsLabel = annualDiscountSum > 0 ? `Discounts: ${formatCurrencyValue(annualDiscountSum)}` : '';
+    
+    const placeholders = { 
+      '{{CalculationDate}}': new Date().toLocaleDateString('en-NZ', { year: 'numeric', month: 'short', day: 'numeric'}), 
+      '{{CustomerType}}': resultData.customerType || 'N/A', 
+      '{{Company}}': naIfEmpty(resultData.companyName), 
+      '{{CompanyAddress}}': naIfEmpty(resultData.companyAddress),
+      '{{Sales}}': naIfEmpty(resultData.salesContact), 
+      '{{Plan}}': naIfEmpty(resultData.planString), 
+      '{{AddOnPlan}}': addOnPlanString,
+      '{{ProductBreakdown}}': productBreakdownString,
+      '{{DiscountTotal}}': formatCurrencyValue(discountTotal),
+      '{{Discounts}}': discountsLabel,
+      '{{Region}}': resultData.region || 'N/A', 
+      '{{Currency}}': currency, 
+      '{{ContractYears}}': resultData.contractYears || 1, 
+      '{{PaymentFrequency}}': resultData.paymentFrequencyKey || 'N/A', 
+      '{{BaseTotal}}': formatCurrencyValue(roundedProductsTotal), 
+      '{{BulkDiscountAmount}}': formatAmount(-resultData.bulkDiscountAmount), 
+      '{{RegionDiscountPercent}}': formatPercentValue(resultData.regionDiscountPercentDecimal), 
+      '{{RegionDiscountAmount}}': formatAmount(-resultData.regionDiscountAmount), 
+      '{{PaymentDiscountPercent}}': formatPercentValue(resultData.paymentFrequencyDiscountPercentDecimal), 
+      '{{PaymentDiscountAmount}}': formatAmount(-resultData.paymentFrequencyDiscountAmount), 
+      '{{DiscretionaryDiscountPercent}}': formatPercentValue(resultData.discretionaryDiscountPercentDecimal), 
+      '{{DiscretionaryDiscountAmount}}': formatAmount(-resultData.discretionaryDiscountAmount), 
+      '{{Y1discount}}': (resultData.discretionaryFirstYearOnly && resultData.discretionaryDiscountPercentDecimal > 0) ? `Year 1 Discount: ${formatPercentValue(resultData.discretionaryDiscountPercentDecimal)}` : '', 
+      '{{MinPriceAdjustment}}': formatAmount(resultData.totalMinPriceAdjustments), 
+      '{{AddonTotal}}': formatCurrencyValue(resultData.totalAddOnCost), 
+      '{{CameraRental}}': formatAmount(resultData.cameraRental), 
+      '{{Year1Cost}}': formatCurrencyValue(resultData.finalYear1Cost), 
+      '{{StandardAnnualCost}}': formatCurrencyValue(resultData.standardAnnualCost), 
+      '{{InflationSavings}}': resultData.contractYears > 1 && resultData.inflationSavings > 0 ? formatCurrencyValue(resultData.inflationSavings) : 'N/A', 
+      '{{TotalContractValue}}': resultData.contractYears > 1 ? formatCurrencyValue(resultData.totalContractValue) : 'N/A', 
+      '{{InflationStatus}}': resultData.contractYears > 1 ? 'Inflation Waived (Multi-Year Commitment)' : '1-Year Term', 
+      '{{OneOffAddOnBreakdown}}': oneOffAddOnDetailsString,
+      '{{AnnualAddOnBreakdown}}': annualAddOnDetailsString,
+    };
+
+    Logger.log("Accessing template file via DriveApp, ID: " + templateId); 
+    const templateFile = DriveApp.getFileById(templateId); 
+    if (!templateFile) { 
+      throw new Error("Could not find template file."); 
+    } 
+    
+    Logger.log("Template Name: '" + templateFile.getName() + "'"); 
+    const tempFolderName = "Temporary Price Reports"; 
+    var destFolder; 
+    const folders = DriveApp.getFoldersByName(tempFolderName); 
+    if (folders.hasNext()) { 
+      destFolder = folders.next(); 
+    } else { 
+      destFolder = DriveApp.createFolder(tempFolderName); 
+    } 
+    
+    Logger.log("Using destination folder: " + destFolder.getName()); 
+    const docName = `Price Report - ${placeholders['{{Company}}'] !== 'N/A' ? placeholders['{{Company}}'] : 'Customer'} - ${placeholders['{{CalculationDate}}']}`; 
+    tempFile = templateFile.makeCopy(docName, destFolder); 
+    const copyId = tempFile.getId(); 
+    Logger.log("Copy created: ID " + copyId); 
+    
+    const tempDoc = DocumentApp.openById(copyId); 
+    const body = tempDoc.getBody(); 
+    Logger.log("Replacing placeholders..."); 
+    for (const key in placeholders) { 
+      body.replaceText(key, placeholders[key] || ''); 
+    } 
+    tempDoc.saveAndClose(); 
+    Logger.log("Google Doc saved.");
+
+    // Get the URL of the created Google Doc
+    const docUrl = tempFile.getUrl();
+    
+    const filename = docName; 
+    Logger.log("Returning Google Doc URL for: " + filename); 
+    return { url: docUrl, filename: filename };
+  } catch (e) { 
+    Logger.log(`Error in createGoogleDocReport: ${e}`); 
+    Logger.log(`Stack: ${e.stack}`); 
+    if (tempFile) { 
+      try { 
+        Logger.log("Cleanup after error..."); 
+        DriveApp.getFileById(tempFile.getId()).setTrashed(true); 
+      } catch (err) {} 
+    } 
+    
+    let errorMessage = e.message; 
+    if (e.message.includes("makeCopy") || e.message.includes("getFileById") || e.message.includes("openById")) { 
+      errorMessage = "Could not access/copy template. Check ID/Permissions."; 
+    }
+    return { error: `Failed to create Google Doc report: ${errorMessage}` }; 
+  }
+}
+
 // --- Debug Function ---
 function displayResultsInSheet_DEBUG(result) {
   Logger.log("--- displayResultsInSheet_DEBUG ---");
