@@ -1266,14 +1266,8 @@ function createGoogleDocReport(resultData, templateId) {
     }
     
     Logger.log("Template Name: '" + templateFile.getName() + "'");
-    const tempFolderName = "Price Reports - Google Docs";
-    var destFolder;
-    const folders = DriveApp.getFoldersByName(tempFolderName);
-    if (folders.hasNext()) {
-      destFolder = folders.next();
-    } else {
-      destFolder = DriveApp.createFolder(tempFolderName);
-    }
+    const targetFolderId = "16WGI-ZCS4JG6I4r6P-bFZUSFst-ypkAM";
+    var destFolder = DriveApp.getFolderById(targetFolderId);
     
     Logger.log("Using destination folder: " + destFolder.getName());
     const docName = `Price Report - ${placeholders['{{Company}}'] !== 'N/A' ? placeholders['{{Company}}'] : 'Customer'} - ${placeholders['{{CalculationDate}}']}`<br/>    const googleDocCopy = templateFile.makeCopy(docName, destFolder);
