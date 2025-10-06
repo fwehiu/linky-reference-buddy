@@ -44,6 +44,8 @@
       color: var(--primary-color); 
       font-size: 16px; 
       line-height: 1.6;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
     
     body { 
@@ -351,7 +353,7 @@
       background-color: var(--white-color);
       border-radius: var(--border-radius);
       box-shadow: var(--shadow-md);
-      overflow: hidden;
+      overflow: visible;
       transition: var(--transition);
       animation: fadeIn 0.5s ease;
     }
@@ -954,6 +956,44 @@
     .hidden {
       display: none !important;
     }
+
+    /* Dropdown (collapsible) styles for Add-on Products */
+    .dropdown {
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      background-color: var(--white-color);
+      margin-bottom: 12px;
+      box-shadow: var(--shadow-sm);
+    }
+    .dropdown summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 12px 16px;
+      font-weight: 600;
+      color: var(--primary-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .dropdown summary::-webkit-details-marker { display: none; }
+    .dropdown summary:after {
+      content: '▾';
+      color: var(--secondary-color);
+      transition: var(--transition);
+    }
+    .dropdown[open] summary:after { transform: rotate(180deg); }
+    .dropdown .checkbox-container {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border-color);
+      background-color: var(--white-color);
+    }
+
+    /* Two-column form grid for Client + Contract */
+    .form-two-col { display: grid; grid-template-columns: 1fr; gap: 30px; }
+    @media (min-width: 900px) { .form-two-col { grid-template-columns: 1fr 1fr; } }
+
+    /* Utility to span across both grid columns of the main layout */
+    .grid-span-2 { grid-column: 1 / -1; }
   </style>
 </head>
 
@@ -974,7 +1014,8 @@
     <div id="calculatorForm">
       <div class="grid-container">
         <!-- Left Column - Client Information -->
-        <div>
+        <div class="grid-span-2">
+          <div class="form-two-col" id="clientContractGrid">
           <!-- Client Information Card -->
           <div class="card">
             <div class="card-header">
@@ -1002,11 +1043,11 @@
               
               <div class="form-group">
                 <label for="customerType">Customer Type:</label>
-                <select id="customerType">
-                  <option value="Grower">Grower</option>
-                  <option value="Packer">Packer</option>
-                  <option value="Packer & Grower">Packer & Grower</option>
-                </select>
+                  <select id="customerType">
+                    <option value="Grower">Grower</option>
+                    <option value="Packer">Packer</option>
+                    <option value="Packer & Grower">Packer & Grower</option>
+                  </select>
               </div>
               
               <div class="form-group">
@@ -1074,8 +1115,13 @@
               
               <div class="form-group">
                 <label for="discretionaryDiscount">Special Discount (%):</label>
-                <input type="number" id="discretionaryDiscount" min="0" max="100" value="0" step="0.1">
-                
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <input type="number" id="discretionaryDiscount" min="0" max="100" value="0" step="0.1">
+                  <label class="checkbox-label" style="margin: 0;">
+                    <input type="checkbox" id="discountFirstYearOnly">
+                    First year only?
+                  </label>
+                </div>
                 <div id="discountWarning" style="display: none; color: var(--warning-color); font-size: 0.9em; margin-top: 8px;">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -3px; margin-right: 5px;">
                     <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
@@ -1087,28 +1133,10 @@
               </div>
             </div>
           </div>
+          </div>
+          </div>
 
-          <!-- Add-on Products Card (One-off, quantity-based) -->
-          <div class="card">
-            <div class="card-header">
-              <svg class="card-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="8" x2="12" y2="16"></line>
-                <line x1="8" y1="12" x2="16" y2="12"></line>
-              </svg>
-              <h2 class="section-title">Add-on Products</h2>
-            </div>
-            <div class="card-body">
-              <div id="oneOffAddOnsContainer">
-                <p class="text-gray-600">No add-ons available.</p>
-              </div>
-              <p style="margin-top:8px; color: var(--secondary-color); font-size: 0.9rem;">Note: Add-on products are one-off charges applied only in Year 1.</p>
-            </div>
-          </div>
           
-          <div class="info-callout">
-            <p><strong>Why choose Hectre?</strong> Our solutions help maximize productivity and increase profit by optimizing your fruit operations with industry-leading technology.</p>
-          </div>
         </div>
         
         <!-- Right Column - Fruit Selection -->
@@ -1155,7 +1183,7 @@
               <!-- Camera Options (for Packer only) -->
               <div id="cameraOptions" style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed var(--border-color); display: none;">
                 <label class="checkbox-label">
-                  <input type="checkbox" id="cameraRental"> Camera Rental
+                  <input type="checkbox" id="cameraRental"> Topdown Lease (Camera + Lights) USD
                   <span class="badge badge-warning">Hardware</span>
                 </label>
                 
@@ -1167,6 +1195,33 @@
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+          
+          <!-- Add on Products -->
+          <div class="card" id="addOnsSectionCard">
+            <div class="card-header">
+              <svg class="card-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="16"></line>
+                <line x1="8" y1="12" x2="16" y2="12"></line>
+              </svg>
+              <h2 class="section-title">Add on Products</h2>
+            </div>
+            <div class="card-body">
+              <details class="dropdown" id="oneOffAddOnsDropdown">
+                <summary>One-off Add-on Products</summary>
+                <div id="oneOffAddOnsContainer" class="checkbox-container">
+                  <p>Loading add-on products...</p>
+                </div>
+              </details>
+
+              <details class="dropdown" id="rentalAddOnsDropdown">
+                <summary>Rental add-on products (per year)</summary>
+                <div id="rentalAddOnsContainer" class="checkbox-container">
+                  <p>Loading rental add-on products...</p>
+                </div>
+              </details>
             </div>
           </div>
           
@@ -1209,41 +1264,9 @@
               <!-- Fruit breakdowns will be added here dynamically -->
             </div>
             
-            <!-- Add-ons section within the fruit breakdown section -->
-            <div id="addonsContainer" class="addons-section" style="display: none;">
-              <div class="addons-header">
-                <span>Add-ons Total</span>
-                <span class="total" id="addonsTotal">$0.00</span>
-              </div>
-              <div id="addonItemsContainer">
-                <!-- Individual add-on items will be added here -->
-              </div>
-            </div>
           </div>
         </div>
         
-        <!-- Add-on Product Breakdown (combined) -->
-        <div id="addOnBreakdownSection" class="addons-section" style="display: none;">
-          <div class="addons-header">
-            <span>Add-on Product Breakdown</span>
-          </div>
-          <!-- Recurring add-ons -->
-          <div id="addOnRecurringBlock" class="addons-subsection" style="display: none; margin-top: 8px;">
-            <div class="addons-header" style="border: none; padding: 0; margin-bottom: 8px;">
-              <span>Recurring Add-ons</span>
-              <span class="total" id="addOnRecurringTotal">$0.00</span>
-            </div>
-            <div id="addOnRecurringItems"></div>
-          </div>
-          <!-- One-off add-ons -->
-          <div id="addOnOneOffBlock" class="addons-subsection" style="display: none; margin-top: 12px;">
-            <div class="addons-header" style="border: none; padding: 0; margin-bottom: 8px;">
-              <span>One-off Add-ons</span>
-              <span class="total" id="addOnOneOffTotal">$0.00</span>
-            </div>
-            <div id="addOnOneOffItems"></div>
-          </div>
-        </div>
         
         <!-- One-off Add-on products breakdown -->
         <div id="oneOffAddonsBreakdown" class="addons-section" style="display: none;">
@@ -1252,6 +1275,15 @@
             <span class="total" id="oneOffAddonsTotal">$0.00</span>
           </div>
           <div id="oneOffAddonItems"></div>
+        </div>
+        
+        <!-- Rental Add-on products breakdown (per year) -->
+        <div id="rentalAddonsBreakdown" class="addons-section" style="display: none;">
+          <div class="addons-header">
+            <span>Rental add-on products (per year)</span>
+            <span class="total" id="rentalAddonsTotal">$0.00</span>
+          </div>
+          <div id="rentalAddonItems"></div>
         </div>
         
         <!-- Discounts Section -->
@@ -1349,8 +1381,9 @@
     let selectedFruitsData = {};
     let currentFruitSelection = { type: null, products: [], addOns: [] };
     let latestResult = null;
+    let oneOffAddOnSelections = {};
+    let rentalAddOnSelections = {};
     const TEMPLATE_ID = '1sUO5ivgJELWlY6aMEWZ1vI5chfQo9ONCbw3Wcef5p4I';
-
     // Helper function to ensure a value is always an array
     function ensureArray(value) {
       if (Array.isArray(value)) return value;
@@ -1384,6 +1417,24 @@
     function formatCurrencyExact(val, code = 'USD') {
       const num = (typeof val === 'number' && !isNaN(val)) ? val : parseFloat(val) || 0;
       return `${code} ${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+    
+    // Currency helpers using data.currencies and data.currencyRates (NZD -> code)
+    function getCurrencyRate(code) {
+      if (!data || !Array.isArray(data.currencies) || !Array.isArray(data.currencyRates)) return null;
+      const idx = data.currencies.indexOf(code);
+      if (idx === -1) return null;
+      const rate = data.currencyRates[idx];
+      return (typeof rate === 'number' && !isNaN(rate)) ? rate : null; // NZD -> code
+    }
+
+    // Convert an amount from USD to the target currency using NZD as pivot
+    function convertUSDToSelected(amountUSD, targetCode) {
+      const rateUSD = getCurrencyRate('USD');
+      const rateTarget = getCurrencyRate(targetCode);
+      if (!rateUSD || !rateTarget) return amountUSD; // Fallback: return USD amount unconverted
+      const amountNZD = amountUSD / rateUSD; // USD -> NZD
+      return amountNZD * rateTarget; // NZD -> target
     }
     
     function makeSafeId(txt) { 
@@ -1421,29 +1472,10 @@
       document.getElementById('selectedFruitsContainer').addEventListener('change', handleTonnageAddonChange);
       document.getElementById('exportDocButton').addEventListener('click', handleExportDoc);
       document.getElementById('resetButton').addEventListener('click', resetCalculator);
-    }
-
-    // Render one-off add-on products list
-    function renderOneOffAddOns(items) {
-      const container = document.getElementById('oneOffAddOnsContainer');
-      container.innerHTML = '';
-      if (!items || items.length === 0) {
-        container.innerHTML = '<p class="text-gray-600">No add-ons available.</p>';
-        return;
-      }
-      items.forEach((it, idx) => {
-        const row = document.createElement('div');
-        row.className = 'result-row';
-        const label = document.createElement('div');
-        label.className = 'result-label';
-        label.textContent = String(it.name || '').trim();
-        const value = document.createElement('div');
-        value.className = 'result-value';
-        value.innerHTML = `<input type="number" min="0" value="0" data-name="${(String(it.name||'').replace(/"/g,'&quot;'))}" class="oneoff-addon-qty" style="width:100px; margin-right:8px;"> <span style="font-size:0.9rem; color:var(--secondary-color);">Unit: ${Number(it.price||0)}</span>`;
-        row.appendChild(label);
-        row.appendChild(value);
-        container.appendChild(row);
-      });
+      const oneOffCont = document.getElementById('oneOffAddOnsContainer');
+      if (oneOffCont) { oneOffCont.addEventListener('change', handleOneOffAddOnChange); }
+      const rentalCont = document.getElementById('rentalAddOnsContainer');
+      if (rentalCont) { rentalCont.addEventListener('change', handleRentalAddOnChange); }
     }
 
     // --- Data Loading Functions ---
@@ -1472,6 +1504,8 @@
       populatePaymentFrequencies();
       updateRegionDiscountDisplay();
       updatePaymentDiscountDisplay();
+      renderOneOffAddOns();
+      renderRentalAddOns();
       
       // Set default payment frequency to Annual after data is loaded
       if (data.paymentFrequencies && data.paymentFrequencies['Annual']) {
@@ -1618,12 +1652,17 @@
       
       if (!data || !data.addOns) return applicableAddOns;
       
+      // Build a set of one-off add-on names to exclude from recurring add-ons UI
+      const oneOffNamesSet = new Set(((data && data.oneOffAddOnProducts) || []).map(i => String(i.name || '').trim()));
+      
       for (const addonName in data.addOns) {
+        const nameTrim = String(addonName || '').trim();
+        if (oneOffNamesSet.has(nameTrim)) continue; // exclude one-off items from recurring list
         const addonDetails = data.addOns[addonName];
         
         if (addonDetails && addonDetails[productName] !== undefined) {
           applicableAddOns.push({
-            name: addonName,
+            name: nameTrim,
             markup: addonDetails[productName]
           });
         }
@@ -1673,6 +1712,134 @@
       
       sel.disabled = !hasOptions;
       updatePaymentDiscountDisplay();
+    }
+
+    // One-off Add-on Products UI
+    function renderOneOffAddOns() {
+      const cont = document.getElementById('oneOffAddOnsContainer');
+      if (!cont) return;
+      const list = (data && data.oneOffAddOnProducts) || [];
+      cont.innerHTML = '';
+      if (!list || list.length === 0) {
+        cont.innerHTML = '<p>No add-on products available.</p>';
+        return;
+      }
+      list.forEach((item, idx) => {
+        const name = (item && item.name) ? String(item.name) : '';
+        const price = (item && typeof item.price !== 'undefined') ? (parseFloat(item.price) || 0) : 0;
+        const id = `oneoff_${makeSafeId(name)}_${idx}`;
+        const row = document.createElement('div');
+        row.className = 'checkbox-item';
+        row.innerHTML = `
+          <label class="checkbox-label" for="${id}">
+            <input type="checkbox" id="${id}" data-oneoff="1" value="${name}">
+            ${name}
+          </label>
+          <div style="margin-left:28px; margin-top:6px;">
+            <label for="${id}_qty" style="margin-bottom:4px;">Quantity</label>
+            <input type="number" min="0" step="1" id="${id}_qty" data-oneoff-qty-for="${id}" value="${oneOffAddOnSelections[name] || 0}" style="width:100px;">
+          </div>
+        `;
+        cont.appendChild(row);
+        const cb = document.getElementById(id);
+        const qtyInput = document.getElementById(`${id}_qty`);
+        const qtyVal = parseInt(oneOffAddOnSelections[name] || 0, 10);
+        cb.checked = qtyVal > 0;
+        qtyInput.disabled = !cb.checked;
+      });
+    }
+
+    function handleOneOffAddOnChange(e) {
+      const t = e.target;
+      if (t && t.matches('input[type="checkbox"][data-oneoff="1"]')) {
+        const name = t.value;
+        const qtyInput = document.getElementById(`${t.id}_qty`);
+        if (t.checked) {
+          qtyInput.disabled = false;
+          const existing = parseInt(oneOffAddOnSelections[name] || 0, 10) || 0;
+          if (existing <= 0) {
+            oneOffAddOnSelections[name] = 1;
+            qtyInput.value = 1;
+          }
+        } else {
+          oneOffAddOnSelections[name] = 0;
+          qtyInput.value = 0;
+          qtyInput.disabled = true;
+        }
+      } else if (t && t.matches('input[type="number"][data-oneoff-qty-for]')) {
+        const id = t.getAttribute('data-oneoff-qty-for');
+        const cb = document.getElementById(id);
+        if (!cb) return;
+        const name = cb.value;
+        const qty = parseInt(t.value, 10) || 0;
+        oneOffAddOnSelections[name] = Math.max(0, qty);
+        cb.checked = qty > 0;
+        t.disabled = !cb.checked && qty <= 0;
+      }
+    }
+
+    // Rental Add-on Products UI
+    function renderRentalAddOns() {
+      const cont = document.getElementById('rentalAddOnsContainer');
+      if (!cont) return;
+      const list = (data && data.rentalAddOnProducts) || [];
+      cont.innerHTML = '';
+      if (!list || list.length === 0) {
+        cont.innerHTML = '<p>No rental add-on products available.</p>';
+        return;
+      }
+        list.forEach((item, idx) => {
+          const nameRaw = (item && item.name) ? String(item.name) : '';
+          const name = nameRaw.trim();
+          const id = `rental_${makeSafeId(name)}_${idx}`;
+        const row = document.createElement('div');
+        row.className = 'checkbox-item';
+        row.innerHTML = `
+          <label class="checkbox-label" for="${id}">
+            <input type="checkbox" id="${id}" data-rental="1" value="${name}">
+            ${name}
+          </label>
+          <div style="margin-left:28px; margin-top:6px;">
+            <label for="${id}_qty" style="margin-bottom:4px;">Quantity</label>
+            <input type="number" min="0" step="1" id="${id}_qty" data-rental-qty-for="${id}" value="${rentalAddOnSelections[name] || 0}" style="width:100px;">
+          </div>
+        `;
+        cont.appendChild(row);
+        const cb = document.getElementById(id);
+        const qtyInput = document.getElementById(`${id}_qty`);
+        const qtyVal = parseInt(rentalAddOnSelections[name] || 0, 10);
+        cb.checked = qtyVal > 0;
+        qtyInput.disabled = !cb.checked;
+      });
+    }
+
+    function handleRentalAddOnChange(e) {
+      const t = e.target;
+      if (t && t.matches('input[type="checkbox"][data-rental="1"]')) {
+        const name = String(t.value || '').trim();
+        const qtyInput = document.getElementById(`${t.id}_qty`);
+        if (t.checked) {
+          qtyInput.disabled = false;
+          const existing = parseInt(rentalAddOnSelections[name] || 0, 10) || 0;
+          if (existing <= 0) {
+            rentalAddOnSelections[name] = 1;
+            qtyInput.value = 1;
+          }
+        } else {
+          rentalAddOnSelections[name] = 0;
+          qtyInput.value = 0;
+          qtyInput.disabled = true;
+        }
+      } else if (t && t.matches('input[type="number"][data-rental-qty-for]')) {
+        const id = t.getAttribute('data-rental-qty-for');
+        const cb = document.getElementById(id);
+        if (!cb) return;
+        const name = String(cb.value || '').trim();
+        const qty = parseInt(t.value, 10) || 0;
+        rentalAddOnSelections[name] = Math.max(0, qty);
+        cb.checked = qty > 0;
+        t.disabled = !cb.checked && qty <= 0;
+      }
     }
 
     // --- Event Handlers ---
@@ -2080,18 +2247,27 @@
         includeCamera: document.getElementById('cameraRental').checked,
         cameraCount: parseInt(document.getElementById('cameraCount').value) || 0,
         discretionaryDiscount: parseFloat(document.getElementById('discretionaryDiscount').value) || 0,
+        discountFirstYearOnly: document.getElementById('discountFirstYearOnly').checked,
         contractYears: parseInt(document.getElementById('contractYears').value) || 1,
         companyName: document.getElementById('companyName').value,
         companyAddress: document.getElementById('companyAddress').value,
         salesContact: document.getElementById('salesContact').value
       };
-
-      // Collect one-off add-on products with quantities > 0
-      const oneOffInputs = Array.from(document.querySelectorAll('.oneoff-addon-qty'));
-      formData.oneOffAddOns = oneOffInputs
-        .map(inp => ({ name: inp.dataset.name, qty: parseFloat(inp.value) || 0 }))
-        .filter(entry => entry.name && entry.qty > 0);
-
+      // Include one-off add-ons selections
+      const oneOffAddOns = [];
+      for (const [name, qty] of Object.entries(oneOffAddOnSelections)) {
+        const q = parseInt(qty, 10) || 0;
+        if (q > 0) oneOffAddOns.push({ name, qty: q });
+      }
+      formData.oneOffAddOns = oneOffAddOns;
+      
+      // Include rental add-ons selections (per year)
+      const rentalAddOns = [];
+      for (const [name, qty] of Object.entries(rentalAddOnSelections)) {
+        const q = parseInt(qty, 10) || 0;
+        if (q > 0) rentalAddOns.push({ name, qty: q });
+      }
+      formData.rentalAddOns = rentalAddOns;
       setCalculatingState(true);
       
       // Call the Google Apps Script backend to calculate pricing
@@ -2165,9 +2341,9 @@
         multiYearSection.style.display = 'block';
         singleYearSection.style.display = 'none';
         
-        document.getElementById('finalTotal').textContent = formatCurrency(result.finalYear1Cost, result.currency);
+        document.getElementById('finalTotal').textContent = formatCurrencyExact(result.finalYear1Cost, result.currency);
         document.getElementById('contractLength').textContent = `${years} Years`;
-        document.getElementById('totalContractValue').textContent = formatCurrency(result.totalContractValue || 0, result.currency);
+        document.getElementById('totalContractValue').textContent = formatCurrencyExact(result.totalContractValue || 0, result.currency);
         document.getElementById('inflationSavings').textContent = formatCurrency(result.inflationSavings || 0, result.currency);
         
         // Hide inflation savings if not applicable
@@ -2177,7 +2353,7 @@
         // Single year display
         multiYearSection.style.display = 'none';
         singleYearSection.style.display = 'flex';
-        document.getElementById('finalTotalSingle').textContent = formatCurrency(result.finalYear1Cost, result.currency);
+        document.getElementById('finalTotalSingle').textContent = formatCurrencyExact(result.finalYear1Cost, result.currency);
       }
       
       // Check if there are any minimum price adjustments applied
@@ -2276,121 +2452,223 @@
         breakdownContainer.innerHTML = '<div class="text-gray-500 italic">No product breakdown available</div>';
       }
 
-      // Handle add-ons section (recurring add-ons only; exclude one-off products)
-      const addonsContainer = document.getElementById('addonsContainer');
-      const addonItemsContainer = document.getElementById('addonItemsContainer');
-      const addonsTotalElement = document.getElementById('addonsTotal');
       
-      const oneOffNamesSet = new Set(Object.keys(result.oneOffAddOnCosts || {}));
-      const recurringEntries = Object.entries(result.addOnCosts || {}).filter(([name, cost]) => cost > 0 && !oneOffNamesSet.has(name));
-      
-      if (recurringEntries.length > 0) {
-        // Show add-ons in the fruit breakdown section
-        addonsContainer.style.display = 'block';
-        
-        // Round the total recurring add-on cost to nearest hundred
-        const totalRecurring = recurringEntries.reduce((sum, [, cost]) => sum + cost, 0);
-        const roundedAddOnTotal = roundToNearestHundred(totalRecurring);
-        addonsTotalElement.textContent = formatCurrency(roundedAddOnTotal, result.currency);
-        
-        addonItemsContainer.innerHTML = '';
-        recurringEntries.forEach(([addonName, cost]) => {
-          // Round each recurring add-on cost to nearest hundred
-          const roundedCost = roundToNearestHundred(cost);
-          const addonItem = document.createElement('div');
-          addonItem.className = 'addon-item';
-          addonItem.innerHTML = `
-            <span class="addon-name">${addonName}</span>
-            <span class="addon-price">${formatCurrency(roundedCost, result.currency)}</span>
-          `;
-          addonItemsContainer.appendChild(addonItem);
-        });
-      } else {
-        // Hide add-ons section if no recurring add-ons
-        addonsContainer.style.display = 'none';
-      }
-
-      // One-off add-on products breakdown (USD)
+      // One-off add-on products breakdown (converted to selected currency)
       const oneOffSection = document.getElementById('oneOffAddonsBreakdown');
       const oneOffItemsContainer = document.getElementById('oneOffAddonItems');
       const oneOffTotalElement = document.getElementById('oneOffAddonsTotal');
       if (oneOffSection && oneOffItemsContainer && oneOffTotalElement) {
+        const selectedCurrency = result.currency || 'NZD';
         if (result.oneOffAddOnTotalUSD > 0 && result.oneOffAddOnCosts) {
           oneOffSection.style.display = 'block';
-          oneOffTotalElement.textContent = formatCurrencyExact((result.oneOffAddOnTotalUSD || 0), 'USD');
           oneOffItemsContainer.innerHTML = '';
-          for (const [name, cost] of Object.entries(result.oneOffAddOnCosts)) {
-            if (cost > 0) {
+
+          // Calculate per-unit rounded totals after currency conversion
+          let totalRounded = 0;
+          for (const [name, usdSubtotal] of Object.entries(result.oneOffAddOnCosts)) {
+            if (usdSubtotal > 0) {
+              const qty = parseInt(oneOffAddOnSelections[name] || 0, 10) || 0;
+              if (qty > 0) {
+                const unitUSD = usdSubtotal / qty;
+                const unitConverted = convertUSDToSelected(unitUSD, selectedCurrency);
+                const unitRounded = Math.ceil(unitConverted); // round up per unit to nearest whole number
+                const lineTotal = unitRounded * qty;
+                totalRounded += lineTotal;
+
+                const item = document.createElement('div');
+                item.className = 'addon-item';
+                const displayName = `${name} x${qty}`;
+                item.innerHTML = `
+                  <span class="addon-name">${displayName}</span>
+                  <span class="addon-price">${formatCurrencyExact(lineTotal, selectedCurrency)}</span>
+                `;
+                oneOffItemsContainer.appendChild(item);
+              }
+            }
+          }
+
+          oneOffTotalElement.textContent = formatCurrencyExact(totalRounded, selectedCurrency);
+        } else if (typeof result.totalOneOffAddOnCost === 'number' && result.totalOneOffAddOnCost > 0) {
+          // Fallback path when backend already returns amounts in selected currency (assumed per-unit in NZD)
+          oneOffSection.style.display = 'block';
+          oneOffItemsContainer.innerHTML = '';
+
+          let totalRounded = 0;
+          const priceMapNZD = {};
+          (data.oneOffAddOnProducts || []).forEach(it => { if (it && it.name) priceMapNZD[String(it.name)] = parseFloat(it.price) || 0; });
+
+          for (const [name, qtyRaw] of Object.entries(oneOffAddOnSelections)) {
+            const qty = parseInt(qtyRaw, 10) || 0;
+            if (qty > 0) {
+              const unitNZD = priceMapNZD[name] || 0;
+              const rateTarget = getCurrencyRate(selectedCurrency) || 1; // NZD -> selected
+              const unitSelected = unitNZD * rateTarget;
+              const unitRounded = Math.ceil(unitSelected);
+              const lineTotal = unitRounded * qty;
+              totalRounded += lineTotal;
+
               const item = document.createElement('div');
               item.className = 'addon-item';
+              const displayName = `${name} x${qty}`;
               item.innerHTML = `
-                <span class=\"addon-name\">${name}</span>
-                <span class=\"addon-price\">${formatCurrencyExact(cost, 'USD')}</span>
+                <span class="addon-name">${displayName}</span>
+                <span class="addon-price">${formatCurrencyExact(lineTotal, selectedCurrency)}</span>
               `;
               oneOffItemsContainer.appendChild(item);
             }
           }
+
+          oneOffTotalElement.textContent = formatCurrencyExact(totalRounded, selectedCurrency);
         } else {
           oneOffSection.style.display = 'none';
         }
       }
 
-      // Add-on Product Breakdown (combined section)
-      const addOnSection = document.getElementById('addOnBreakdownSection');
-      const recurBlock = document.getElementById('addOnRecurringBlock');
-      const recurItems = document.getElementById('addOnRecurringItems');
-      const recurTotalEl = document.getElementById('addOnRecurringTotal');
-      const oneOffBlock = document.getElementById('addOnOneOffBlock');
-      const oneOffItems = document.getElementById('addOnOneOffItems');
-      const oneOffTotalEl = document.getElementById('addOnOneOffTotal');
+      // Rental add-on products breakdown (converted to selected currency per year)
+      const rentalSection = document.getElementById('rentalAddonsBreakdown');
+      const rentalItemsContainer = document.getElementById('rentalAddonItems');
+      const rentalTotalElement = document.getElementById('rentalAddonsTotal');
+      if (rentalSection && rentalItemsContainer && rentalTotalElement) {
+        const selectedCurrency = result.currency || 'NZD';
+        rentalSection.style.display = 'block';
+        rentalItemsContainer.innerHTML = '';
 
-      if (addOnSection && recurBlock && recurItems && recurTotalEl && oneOffBlock && oneOffItems && oneOffTotalEl) {
-        const hasRecurring = recurringEntries.length > 0;
-        const hasOneOff = (result.oneOffAddOnTotalUSD > 0) && !!result.oneOffAddOnCosts;
+        let hasAny = false;
+        let totalRounded = 0;
+        if (result.rentalAddOnCosts && Object.keys(result.rentalAddOnCosts).length > 0) {
+          for (const [name, usdSubtotal] of Object.entries(result.rentalAddOnCosts)) {
+            if (usdSubtotal > 0) {
+              // Compute quantity from backend subtotal and catalog unit price to avoid UI state mismatch
+              const nm = String(name || '').trim();
+              const catalogItem = (data && Array.isArray(data.rentalAddOnProducts) ? data.rentalAddOnProducts : []).find(it => String(it?.name || '').trim() === nm);
+              const unitUSDFromCatalog = catalogItem && typeof catalogItem.price !== 'undefined' ? (parseFloat(catalogItem.price) || 0) : 0;
+              let qty = 0;
+              if (unitUSDFromCatalog > 0) {
+                qty = Math.round(usdSubtotal / unitUSDFromCatalog);
+              }
+              // Fallback to UI selections if catalog lookup fails
+              if (!qty || qty <= 0) {
+                qty = parseInt((rentalAddOnSelections[nm] ?? rentalAddOnSelections[nm.trim()] ?? 0), 10) || 0;
+              }
+              console.log('Rental add-on display debug:', { name: nm, usdSubtotal, unitUSDFromCatalog, qtyFromCatalog: unitUSDFromCatalog > 0 ? Math.round(usdSubtotal / unitUSDFromCatalog) : 0, qtyUsed: qty });
+              if (qty > 0) {
+                hasAny = true;
+                const unitUSD = unitUSDFromCatalog > 0 ? unitUSDFromCatalog : (usdSubtotal / qty);
+                const unitConverted = convertUSDToSelected(unitUSD, selectedCurrency);
+                const unitRounded = Math.ceil(unitConverted);
+                const lineTotal = unitRounded * qty;
+                totalRounded += lineTotal;
 
-        // Recurring
-        if (hasRecurring) {
-          recurBlock.style.display = 'block';
-          recurItems.innerHTML = '';
-          const totalRecurring = recurringEntries.reduce((sum, [, cost]) => sum + cost, 0);
-          recurTotalEl.textContent = formatCurrency(roundToNearestHundred(totalRecurring), result.currency);
-          recurringEntries.forEach(([name, cost]) => {
-            const roundedCost = roundToNearestHundred(cost);
+                let displayName = name;
+                if (qty && qty > 0) {
+                  const idx = name.toLowerCase().lastIndexOf(' annual');
+                  displayName = idx > -1 ? `${name.slice(0, idx)} x${qty}${name.slice(idx)}` : `${name} x${qty}`;
+                }
+
+                const item = document.createElement('div');
+                item.className = 'addon-item';
+                item.innerHTML = `
+                  <span class="addon-name">${displayName}</span>
+                  <span class="addon-price">${formatCurrencyExact(lineTotal, selectedCurrency)}</span>
+                `;
+                rentalItemsContainer.appendChild(item);
+              } else if (usdSubtotal > 0) {
+                // Fallback: display backend subtotal even if quantity couldn't be determined
+                hasAny = true;
+                const subtotalConverted = convertUSDToSelected(Number(usdSubtotal), selectedCurrency);
+                const lineTotal = Math.ceil(subtotalConverted);
+                const item = document.createElement('div');
+                item.className = 'addon-item';
+                item.innerHTML = `
+                  <span class="addon-name">${name}</span>
+                  <span class="addon-price">${formatCurrencyExact(lineTotal, selectedCurrency)}</span>
+                `;
+                rentalItemsContainer.appendChild(item);
+              }
+            }
+          }
+        } else if ((!result.rentalAddOnCosts || Object.keys(result.rentalAddOnCosts).length === 0) && typeof result.rentalAddOnTotalUSD === 'number' && result.rentalAddOnTotalUSD > 0) {
+          // Backend provided only the total USD for rentals; build rows from UI selections or show a single total line
+          const catalog = Array.isArray(data?.rentalAddOnProducts) ? data.rentalAddOnProducts : [];
+          const priceMapUSD = {};
+          catalog.forEach(it => { if (it && it.name) priceMapUSD[String(it.name).trim()] = parseFloat(it.price) || 0; });
+          const entries = Object.entries(rentalAddOnSelections).filter(([,q]) => (parseInt(q,10)||0) > 0);
+          if (entries.length > 0) {
+            entries.forEach(([rawName, qRaw]) => {
+              const name = String(rawName||'').trim();
+              const qty = parseInt(qRaw,10) || 0;
+              const unitUSD = priceMapUSD[name] || 0;
+              const unitConverted = convertUSDToSelected(unitUSD, selectedCurrency);
+              const unitRounded = Math.ceil(unitConverted);
+              const lineTotal = unitRounded * qty;
+              if (lineTotal > 0) {
+                hasAny = true;
+                totalRounded += lineTotal;
+                const displayName = `${name} x${qty}`;
+                const item = document.createElement('div');
+                item.className = 'addon-item';
+                item.innerHTML = `
+                  <span class="addon-name">${displayName}</span>
+                  <span class="addon-price">${formatCurrencyExact(lineTotal, selectedCurrency)}</span>
+                `;
+                rentalItemsContainer.appendChild(item);
+              }
+            });
+          }
+          // If still nothing, show a single total line using the backend total converted
+          if (!hasAny) {
+            const subtotalConverted = convertUSDToSelected(Number(result.rentalAddOnTotalUSD), selectedCurrency);
+            const lineTotal = Math.ceil(subtotalConverted);
+            hasAny = true;
+            totalRounded += lineTotal;
             const item = document.createElement('div');
             item.className = 'addon-item';
             item.innerHTML = `
-              <span class="addon-name">${name}</span>
-              <span class="addon-price">${formatCurrency(roundedCost, result.currency)}</span>
+              <span class="addon-name">Rental add-ons (per year)</span>
+              <span class="addon-price">${formatCurrencyExact(lineTotal, selectedCurrency)}</span>
             `;
-            recurItems.appendChild(item);
-          });
-        } else {
-          recurBlock.style.display = 'none';
-        }
-
-        // One-off (USD exact)
-        if (hasOneOff) {
-          oneOffBlock.style.display = 'block';
-          oneOffItems.innerHTML = '';
-          oneOffTotalEl.textContent = formatCurrencyExact((result.oneOffAddOnTotalUSD || 0), 'USD');
-          for (const [name, cost] of Object.entries(result.oneOffAddOnCosts)) {
-            if (cost > 0) {
-              const item = document.createElement('div');
-              item.className = 'addon-item';
-              item.innerHTML = `
-                <span class="addon-name">${name}</span>
-                <span class="addon-price">${formatCurrencyExact(cost, 'USD')}</span>
-              `;
-              oneOffItems.appendChild(item);
-            }
+            rentalItemsContainer.appendChild(item);
           }
-        } else {
-          oneOffBlock.style.display = 'none';
         }
-
-        addOnSection.style.display = (hasRecurring || hasOneOff) ? 'block' : 'none';
+        else {
+          // Backend provided no rental-specific fields; reconstruct from UI selections
+          const catalog = Array.isArray(data?.rentalAddOnProducts) ? data.rentalAddOnProducts : [];
+          const priceMapUSD = {};
+          catalog.forEach(it => { if (it && it.name) priceMapUSD[String(it.name).trim()] = parseFloat(it.price) || 0; });
+          const entries = Object.entries(rentalAddOnSelections).filter(([,q]) => (parseInt(q,10)||0) > 0);
+          if (entries.length > 0) {
+            entries.forEach(([rawName, qRaw]) => {
+              const name = String(rawName||'').trim();
+              const qty = parseInt(qRaw,10) || 0;
+              const unitUSD = priceMapUSD[name] || 0;
+              const unitConverted = convertUSDToSelected(unitUSD, selectedCurrency);
+              const unitRounded = Math.ceil(unitConverted);
+              const lineTotal = unitRounded * qty;
+              if (lineTotal > 0) {
+                hasAny = true;
+                totalRounded += lineTotal;
+                const displayName = `${name} x${qty}`;
+                const item = document.createElement('div');
+                item.className = 'addon-item';
+                item.innerHTML = `
+                  <span class="addon-name">${displayName}</span>
+                  <span class="addon-price">${formatCurrencyExact(lineTotal, selectedCurrency)}</span>
+                `;
+                rentalItemsContainer.appendChild(item);
+              }
+            });
+          }
+        }
+        
+        if (!hasAny) {
+          rentalItemsContainer.innerHTML = '<div class="text-gray-500 italic">No rental add-on products selected</div>';
+          rentalTotalElement.textContent = formatCurrencyExact(0, selectedCurrency);
+        } else {
+          rentalTotalElement.textContent = formatCurrencyExact(totalRounded, selectedCurrency);
+        }
       }
-
+      
+      
       // Populate discounts
       const discountsContainer = document.getElementById('discountsContainer');
       discountsContainer.innerHTML = '';
@@ -2440,8 +2718,11 @@
       if (result.discretionaryDiscountAmount > 0) {
         hasDiscounts = true;
         const roundedDiscretionaryDiscount = roundToNearestHundred(result.discretionaryDiscountAmount);
+        const discLabel = result.discretionaryFirstYearOnly
+          ? `Special Discount (first year only, ${formatPercent(result.discretionaryDiscountPercentDecimal)})`
+          : `Special Discount (${formatPercent(result.discretionaryDiscountPercentDecimal)})`;
         const discountRow = createDiscountRow(
-          `Special Discount (${formatPercent(result.discretionaryDiscountPercentDecimal)})`,
+          discLabel,
           -roundedDiscretionaryDiscount,
           result.currency,
           'discount-value'
@@ -2567,6 +2848,7 @@
       document.getElementById('selectedFruitsSection').style.display = 'none';
       document.getElementById('selectedFruitsSection').classList.add('hidden');
       document.getElementById('discretionaryDiscount').value = '0';
+      document.getElementById('discountFirstYearOnly').checked = false;
       document.getElementById('discountWarning').style.display = 'none';
       document.getElementById('cameraRental').checked = false;
       document.getElementById('cameraCountContainer').style.display = 'none';
