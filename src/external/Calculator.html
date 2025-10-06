@@ -1368,6 +1368,16 @@
             </svg>
             Download Contract
           </button>
+          <button id="exportGoogleDocButton" class="primary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            Download Contract - Google Doc
+          </button>
         </div>
       </div>
     </div>
@@ -1469,6 +1479,7 @@
       document.getElementById('selectedFruitsContainer').addEventListener('click', handleRemoveFruit);
       document.getElementById('selectedFruitsContainer').addEventListener('change', handleTonnageAddonChange);
       document.getElementById('exportDocButton').addEventListener('click', handleExportDoc);
+      document.getElementById('exportGoogleDocButton').addEventListener('click', handleExportGoogleDoc);
       document.getElementById('resetButton').addEventListener('click', resetCalculator);
       const oneOffCont = document.getElementById('oneOffAddOnsContainer');
       if (oneOffCont) { oneOffCont.addEventListener('change', handleOneOffAddOnChange); }
@@ -2831,6 +2842,53 @@
       const msg = typeof error === 'string' ? error : (error?.message || "Unknown export error");
       console.error("Export Error:", error);
       alert(`Failed to generate report: ${msg}`);
+    }
+    
+    // --- Google Doc Export Functions ---
+    function handleExportGoogleDoc() {
+      if (!latestResult) {
+        alert("Please calculate a price first.");
+        return;
+      }
+      
+      const exportBtn = document.getElementById('exportGoogleDocButton');
+      exportBtn.textContent = "Generating Google Doc...";
+      exportBtn.disabled = true;
+      
+      // Call the Google Apps Script function to create a Google Doc
+      google.script.run
+        .withSuccessHandler(onExportGoogleDocSuccess)
+        .withFailureHandler(onExportGoogleDocError)
+        .createGoogleDocReport(latestResult, TEMPLATE_ID);
+    }
+    
+    function onExportGoogleDocSuccess(result) {
+      const exportBtn = document.getElementById('exportGoogleDocButton');
+      exportBtn.textContent = "Download Contract - Google Doc";
+      exportBtn.disabled = false;
+      
+      if (result && result.error) {
+        onExportGoogleDocError(result.error);
+        return;
+      }
+      
+      if (result && result.url) {
+        console.log("Opening Google Doc:", result.url);
+        // Open the Google Doc in a new tab
+        window.open(result.url, '_blank');
+      } else {
+        onExportGoogleDocError("Received invalid data from server for Google Doc export.");
+      }
+    }
+    
+    function onExportGoogleDocError(error) {
+      const exportBtn = document.getElementById('exportGoogleDocButton');
+      exportBtn.textContent = "Download Contract - Google Doc";
+      exportBtn.disabled = false;
+      
+      const msg = typeof error === 'string' ? error : (error?.message || "Unknown export error");
+      console.error("Google Doc Export Error:", error);
+      alert(`Failed to generate Google Doc: ${msg}`);
     }
     
     // --- Reset Function ---
