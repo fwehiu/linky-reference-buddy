@@ -1455,7 +1455,7 @@
       
       // Set default values
       document.getElementById('contractYears').value = '1';
-      document.getElementById('paymentFrequency').value = 'Annual';
+      // Payment frequency will be set after data loads
       
       // Hide inflation waiver for 1-year default
       document.getElementById('inflationWaiver').style.display = 'none';
@@ -1516,9 +1516,10 @@
       renderOneOffAddOns();
       renderRentalAddOns();
       
-      // Set default payment frequency to Annual after data is loaded
-      if (data.paymentFrequencies && data.paymentFrequencies['Annual']) {
-        document.getElementById('paymentFrequency').value = 'Annual';
+      // Set default payment frequency to first available option after data is loaded
+      if (data.paymentFrequencies && Object.keys(data.paymentFrequencies).length > 0) {
+        const firstFrequency = Object.keys(data.paymentFrequencies)[0];
+        document.getElementById('paymentFrequency').value = firstFrequency;
         updatePaymentDiscountDisplay();
       }
     }
@@ -2910,7 +2911,9 @@
       
       // Reset to default values
       document.getElementById('contractYears').value = '1';
-      document.getElementById('paymentFrequency').value = 'Annual';
+      if (data && data.paymentFrequencies && Object.keys(data.paymentFrequencies).length > 0) {
+        document.getElementById('paymentFrequency').value = Object.keys(data.paymentFrequencies)[0];
+      }
       document.getElementById('inflationWaiver').style.display = 'none';
       
       // Reset form visibility and scroll to top

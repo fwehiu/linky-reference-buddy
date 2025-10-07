@@ -1261,7 +1261,7 @@ function createGoogleDocReport(resultData, templateId) {
     }
     
     Logger.log("Template Name: '" + templateFile.getName() + "'");
-    const targetFolderId = "16WGI-ZCS4JG6I4r6P-bFZUSFst-ypkAM";
+    const targetFolderId = "13XNabBfAtiC8P4PJ7kDvjVzn1KWb8EGG";
     var destFolder = DriveApp.getFolderById(targetFolderId);
     
     Logger.log("Using destination folder: " + destFolder.getName());
