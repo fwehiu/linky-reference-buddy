@@ -1456,11 +1456,11 @@
       showLoader(true);
       
       // Set default values
-      document.getElementById('contractYears').value = '3';
+      document.getElementById('contractYears').value = '1';
       document.getElementById('paymentFrequency').value = 'Annual';
       
-      // Show inflation waiver for 3-year default
-      document.getElementById('inflationWaiver').style.display = 'block';
+      // Hide inflation waiver for 1-year default
+      document.getElementById('inflationWaiver').style.display = 'none';
       
       google.script.run.withSuccessHandler(onDataLoaded).withFailureHandler(onDataLoadError).getData();
       setupEventListeners();
@@ -2911,9 +2911,9 @@
       document.getElementById('cameraCountContainer').style.display = 'none';
       
       // Reset to default values
-      document.getElementById('contractYears').value = '3';
+      document.getElementById('contractYears').value = '1';
       document.getElementById('paymentFrequency').value = 'Annual';
-      document.getElementById('inflationWaiver').style.display = 'block';
+      document.getElementById('inflationWaiver').style.display = 'none';
       
       // Reset form visibility and scroll to top
       updateSelectedFruitsDisplay();
