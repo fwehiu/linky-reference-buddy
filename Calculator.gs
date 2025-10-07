@@ -884,10 +884,10 @@ function createDocReport(resultData, templateId) {
     } 
     
     const currency = resultData.currency || 'NZD'; 
-    const formatCurrencyValue = (val) => (typeof val === 'number' && !isNaN(val)) ? `${currency} ${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : `${currency} 0.00`; 
-    const formatPercentValue = (dec) => (typeof dec === 'number' && !isNaN(dec)) ? `${(dec * 100).toFixed(1)}%` : '0.0%'; 
-    const formatAmount = (val) => (typeof val === 'number' && !isNaN(val) && val !== 0) ? `${val < 0 ? '-' : '+'} ${currency} ${Math.abs(val).toFixed(2)}` : 'N/A'; 
-    const naIfEmpty = (val) => (val && String(val).trim() !== '') ? String(val).trim() : 'N/A'; 
+    const formatCurrencyValue = (val) => (typeof val === 'number' && !isNaN(val)) ? `${currency} ${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : `${currency} 0.00`;
+    const formatPercentValue = (dec) => (typeof dec === 'number' && !isNaN(dec)) ? `${(dec * 100).toFixed(1)}%` : '0.0%';
+    const formatAmount = (val) => (typeof val === 'number' && !isNaN(val) && val !== 0) ? `${val < 0 ? '-' : '+'} ${currency} ${Math.abs(val).toFixed(2)}` : '';
+    const naIfEmpty = (val) => (val && String(val).trim() !== '') ? String(val).trim() : '';
     
     // Calculate rounded products total from individual rounded product prices
     let roundedProductsTotal = 0;
@@ -900,7 +900,7 @@ function createDocReport(resultData, templateId) {
     }
     
     // Create add-on plan string
-    let addOnPlanString = 'N/A';
+    let addOnPlanString = '';
     if (resultData.addOnCosts && Object.keys(resultData.addOnCosts).length > 0) {
       const addOnNames = Object.keys(resultData.addOnCosts).filter(name => resultData.addOnCosts[name] > 0);
       if (addOnNames.length > 0) {
@@ -909,7 +909,7 @@ function createDocReport(resultData, templateId) {
     }
     
     // Create detailed product breakdown by fruit type
-    let productBreakdownString = 'N/A';
+    let productBreakdownString = '';
     if (resultData.productFinalPrices && resultData.productTonnages) {
       let breakdownLines = [];
       for (let fruitType in resultData.productFinalPrices) {
@@ -936,7 +936,7 @@ function createDocReport(resultData, templateId) {
     }
     
     // Create detailed add-on breakdown by product
-    let addOnBreakdownString = 'N/A';
+    let addOnBreakdownString = '';
     if (resultData.addOnCosts && Object.keys(resultData.addOnCosts).length > 0) {
       let addOnLines = [];
       // Add total first
@@ -953,7 +953,7 @@ function createDocReport(resultData, templateId) {
     }
 
     // Build detailed strings for one-off and annual add-ons (product (quantity): currency total)
-    let oneOffAddOnDetailsString = 'N/A';
+    let oneOffAddOnDetailsString = '';
     if (Array.isArray(resultData.oneOffAddOnDetails) && resultData.oneOffAddOnDetails.length > 0) {
       const lines = resultData.oneOffAddOnDetails
         .filter(d => d && d.quantity > 0 && d.total > 0)
@@ -965,7 +965,7 @@ function createDocReport(resultData, templateId) {
       if (lines.length) oneOffAddOnDetailsString = lines.join('\n');
     }
 
-    let annualAddOnDetailsString = 'N/A';
+    let annualAddOnDetailsString = '';
     if (Array.isArray(resultData.rentalAddOnDetails) && resultData.rentalAddOnDetails.length > 0) {
       const lines = resultData.rentalAddOnDetails
         .filter(d => d && d.quantity > 0 && d.total > 0)
@@ -993,7 +993,7 @@ function createDocReport(resultData, templateId) {
     
     const placeholders = { 
       '{{CalculationDate}}': new Date().toLocaleDateString('en-NZ', { year: 'numeric', month: 'short', day: 'numeric'}), 
-      '{{CustomerType}}': resultData.customerType || 'N/A', 
+      '{{CustomerType}}': resultData.customerType || '', 
       '{{Company}}': naIfEmpty(resultData.companyName), 
       '{{CompanyAddress}}': naIfEmpty(resultData.companyAddress),
       '{{Sales}}': naIfEmpty(resultData.salesContact), 
@@ -1002,10 +1002,10 @@ function createDocReport(resultData, templateId) {
       '{{ProductBreakdown}}': productBreakdownString,
       '{{DiscountTotal}}': formatCurrencyValue(discountTotal),
       '{{Discounts}}': discountsLabel,
-      '{{Region}}': resultData.region || 'N/A', 
+      '{{Region}}': resultData.region || '', 
       '{{Currency}}': currency, 
       '{{ContractYears}}': resultData.contractYears || 1, 
-      '{{PaymentFrequency}}': resultData.paymentFrequencyKey || 'N/A', 
+      '{{PaymentFrequency}}': resultData.paymentFrequencyKey || '', 
       '{{BaseTotal}}': formatCurrencyValue(roundedProductsTotal), 
       '{{BulkDiscountAmount}}': formatAmount(-resultData.bulkDiscountAmount), 
       '{{RegionDiscountPercent}}': formatPercentValue(resultData.regionDiscountPercentDecimal), 
@@ -1020,8 +1020,8 @@ function createDocReport(resultData, templateId) {
       '{{CameraRental}}': formatAmount(resultData.cameraRental), 
       '{{Year1Cost}}': formatCurrencyValue(resultData.finalYear1Cost), 
       '{{StandardAnnualCost}}': formatCurrencyValue(resultData.standardAnnualCost), 
-      '{{InflationSavings}}': resultData.contractYears > 1 && resultData.inflationSavings > 0 ? formatCurrencyValue(resultData.inflationSavings) : 'N/A', 
-      '{{TotalContractValue}}': resultData.contractYears > 1 ? formatCurrencyValue(resultData.totalContractValue) : 'N/A', 
+      '{{InflationSavings}}': resultData.contractYears > 1 && resultData.inflationSavings > 0 ? formatCurrencyValue(resultData.inflationSavings) : '', 
+      '{{TotalContractValue}}': resultData.contractYears > 1 ? formatCurrencyValue(resultData.totalContractValue) : '', 
       '{{InflationStatus}}': resultData.contractYears > 1 ? 'Inflation Waived (Multi-Year Commitment)' : '1-Year Term', 
       '{{OneOffAddOnBreakdown}}': oneOffAddOnDetailsString,
       '{{AnnualAddOnBreakdown}}': annualAddOnDetailsString,
@@ -1114,8 +1114,8 @@ function createGoogleDocReport(resultData, templateId) {
     const currency = resultData.currency || 'NZD';
     const formatCurrencyValue = (val) => (typeof val === 'number' && !isNaN(val)) ? `${currency} ${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : `${currency} 0.00`;
     const formatPercentValue = (dec) => (typeof dec === 'number' && !isNaN(dec)) ? `${(dec * 100).toFixed(1)}%` : '0.0%';
-    const formatAmount = (val) => (typeof val === 'number' && !isNaN(val) && val !== 0) ? `${val < 0 ? '-' : '+'} ${currency} ${Math.abs(val).toFixed(2)}` : 'N/A';
-    const naIfEmpty = (val) => (val && String(val).trim() !== '') ? String(val).trim() : 'N/A';
+    const formatAmount = (val) => (typeof val === 'number' && !isNaN(val) && val !== 0) ? `${val < 0 ? '-' : '+'} ${currency} ${Math.abs(val).toFixed(2)}` : '';
+    const naIfEmpty = (val) => (val && String(val).trim() !== '') ? String(val).trim() : '';
     
     // Calculate rounded products total
     let roundedProductsTotal = 0;
@@ -1128,7 +1128,7 @@ function createGoogleDocReport(resultData, templateId) {
     }
     
     // Create add-on plan string
-    let addOnPlanString = 'N/A';
+    let addOnPlanString = '';
     if (resultData.addOnCosts && Object.keys(resultData.addOnCosts).length > 0) {
       const addOnNames = Object.keys(resultData.addOnCosts).filter(name => resultData.addOnCosts[name] > 0);
       if (addOnNames.length > 0) {
@@ -1137,7 +1137,7 @@ function createGoogleDocReport(resultData, templateId) {
     }
     
     // Create detailed product breakdown by fruit type
-    let productBreakdownString = 'N/A';
+    let productBreakdownString = '';
     if (resultData.productFinalPrices && resultData.productTonnages) {
       let breakdownLines = [];
       for (let fruitType in resultData.productFinalPrices) {
@@ -1164,7 +1164,7 @@ function createGoogleDocReport(resultData, templateId) {
     }
     
     // Create detailed add-on breakdown by product
-    let addOnBreakdownString = 'N/A';
+    let addOnBreakdownString = '';
     if (resultData.addOnCosts && Object.keys(resultData.addOnCosts).length > 0) {
       let addOnLines = [];
       addOnLines.push(`Total Add-ons: ${formatCurrencyValue(resultData.totalAddOnCost || 0)}`);
@@ -1180,7 +1180,7 @@ function createGoogleDocReport(resultData, templateId) {
     }
 
     // Build detailed strings for one-off and annual add-ons
-    let oneOffAddOnDetailsString = 'N/A';
+    let oneOffAddOnDetailsString = '';
     if (Array.isArray(resultData.oneOffAddOnDetails) && resultData.oneOffAddOnDetails.length > 0) {
       const lines = resultData.oneOffAddOnDetails
         .filter(d => d && d.quantity > 0 && d.total > 0)
@@ -1192,7 +1192,7 @@ function createGoogleDocReport(resultData, templateId) {
       if (lines.length) oneOffAddOnDetailsString = lines.join('\n');
     }
 
-    let annualAddOnDetailsString = 'N/A';
+    let annualAddOnDetailsString = '';
     if (Array.isArray(resultData.rentalAddOnDetails) && resultData.rentalAddOnDetails.length > 0) {
       const lines = resultData.rentalAddOnDetails
         .filter(d => d && d.quantity > 0 && d.total > 0)
@@ -1220,7 +1220,7 @@ function createGoogleDocReport(resultData, templateId) {
     
     const placeholders = {
       '{{CalculationDate}}': new Date().toLocaleDateString('en-NZ', { year: 'numeric', month: 'short', day: 'numeric'}),
-      '{{CustomerType}}': resultData.customerType || 'N/A',
+      '{{CustomerType}}': resultData.customerType || '',
       '{{Company}}': naIfEmpty(resultData.companyName),
       '{{CompanyAddress}}': naIfEmpty(resultData.companyAddress),
       '{{Sales}}': naIfEmpty(resultData.salesContact),
@@ -1229,10 +1229,10 @@ function createGoogleDocReport(resultData, templateId) {
       '{{ProductBreakdown}}': productBreakdownString,
       '{{DiscountTotal}}': formatCurrencyValue(discountTotal),
       '{{Discounts}}': discountsLabel,
-      '{{Region}}': resultData.region || 'N/A',
+      '{{Region}}': resultData.region || '',
       '{{Currency}}': currency,
       '{{ContractYears}}': resultData.contractYears || 1,
-      '{{PaymentFrequency}}': resultData.paymentFrequencyKey || 'N/A',
+      '{{PaymentFrequency}}': resultData.paymentFrequencyKey || '',
       '{{BaseTotal}}': formatCurrencyValue(roundedProductsTotal),
       '{{BulkDiscountAmount}}': formatAmount(-resultData.bulkDiscountAmount),
       '{{RegionDiscountPercent}}': formatPercentValue(resultData.regionDiscountPercentDecimal),
@@ -1247,8 +1247,8 @@ function createGoogleDocReport(resultData, templateId) {
       '{{CameraRental}}': formatAmount(resultData.cameraRental),
       '{{Year1Cost}}': formatCurrencyValue(resultData.finalYear1Cost),
       '{{StandardAnnualCost}}': formatCurrencyValue(resultData.standardAnnualCost),
-      '{{InflationSavings}}': resultData.contractYears > 1 && resultData.inflationSavings > 0 ? formatCurrencyValue(resultData.inflationSavings) : 'N/A',
-      '{{TotalContractValue}}': resultData.contractYears > 1 ? formatCurrencyValue(resultData.totalContractValue) : 'N/A',
+      '{{InflationSavings}}': resultData.contractYears > 1 && resultData.inflationSavings > 0 ? formatCurrencyValue(resultData.inflationSavings) : '',
+      '{{TotalContractValue}}': resultData.contractYears > 1 ? formatCurrencyValue(resultData.totalContractValue) : '',
       '{{InflationStatus}}': resultData.contractYears > 1 ? 'Inflation Waived (Multi-Year Commitment)' : '1-Year Term',
       '{{OneOffAddOnBreakdown}}': oneOffAddOnDetailsString,
       '{{AnnualAddOnBreakdown}}': annualAddOnDetailsString,
