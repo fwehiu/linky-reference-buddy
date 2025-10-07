@@ -2541,7 +2541,6 @@
       const rentalTotalElement = document.getElementById('rentalAddonsTotal');
       if (rentalSection && rentalItemsContainer && rentalTotalElement) {
         const selectedCurrency = result.currency || 'NZD';
-        rentalSection.style.display = 'block';
         rentalItemsContainer.innerHTML = '';
 
         let hasAny = false;
@@ -2672,9 +2671,9 @@
         }
         
         if (!hasAny) {
-          rentalItemsContainer.innerHTML = '<div class="text-gray-500 italic">No rental add-on products selected</div>';
-          rentalTotalElement.textContent = formatCurrencyExact(0, selectedCurrency);
+          rentalSection.style.display = 'none';
         } else {
+          rentalSection.style.display = 'block';
           rentalTotalElement.textContent = formatCurrencyExact(totalRounded, selectedCurrency);
         }
       }
