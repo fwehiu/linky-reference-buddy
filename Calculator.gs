@@ -920,7 +920,8 @@ function createDocReport(resultData, templateId) {
           const price = resultData.productFinalPrices[fruitType][productName];
           const tonnage = resultData.productTonnages[fruitType] ? (resultData.productTonnages[fruitType][productName] || 0) : 0;
           fruitTotal += price;
-          fruitProducts.push(`  ${productName} (${tonnage.toFixed(1)}t): ${formatCurrencyValue(price)}`);
+          const pricePerTonne = tonnage > 0 ? (price / tonnage).toFixed(2) : '0.00';
+          fruitProducts.push(`  ${productName} (${pricePerTonne}${currency}/t): ${formatCurrencyValue(price)}`);
         }
         
         if (fruitProducts.length > 0) {
@@ -1154,7 +1155,8 @@ function createGoogleDocReport(resultData, templateId) {
           const price = resultData.productFinalPrices[fruitType][productName];
           const tonnage = resultData.productTonnages[fruitType] ? (resultData.productTonnages[fruitType][productName] || 0) : 0;
           fruitTotal += price;
-          fruitProducts.push(`  ${productName} (${tonnage.toFixed(1)}t): ${formatCurrencyValue(price)}`);
+          const pricePerTonne = tonnage > 0 ? (price / tonnage).toFixed(2) : '0.00';
+          fruitProducts.push(`  ${productName} (${pricePerTonne}${currency}/t): ${formatCurrencyValue(price)}`);
         }
         
         if (fruitProducts.length > 0) {
