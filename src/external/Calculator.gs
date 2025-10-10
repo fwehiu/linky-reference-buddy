@@ -477,6 +477,8 @@ function calculatePrice(formData) {
     Logger.log(`=== NEW CASCADING DISCOUNT LOGIC (${currency}) ===`);
     
     let finalProductPricesConverted = {};
+    let productPricesAfterY1Discount = {};
+    let productPricesAfterRegularDiscounts = {};
     let totalAppliedBulkDiscount = 0;
     let totalAppliedRegionDiscount = 0;
     let totalAppliedPaymentDiscount = 0;
@@ -495,6 +497,8 @@ function calculatePrice(formData) {
       let fruitTotalBulkDiscount = fruitData.bulkDiscount || 0;
       
       finalProductPricesConverted[fruitType] = {};
+      productPricesAfterY1Discount[fruitType] = {};
+      productPricesAfterRegularDiscounts[fruitType] = {};
 
       for (let productName in productBaseCosts[fruitType]) {
         if (productName.startsWith('_')) continue;
@@ -581,6 +585,21 @@ function calculatePrice(formData) {
         Logger.log(`Final price for ${productName}: ${finalProductPrice} ${currency}`);
         
         finalProductPricesConverted[fruitType][productName] = finalProductPrice;
+        
+        // Calculate intermediate prices for breakdown variants
+        // Y1 Discount: base - bulk - region - payment - Y1 discretionary (if first year only)
+        let priceAfterY1 = baseProductPrice;
+        if (discountFirstYearOnly && discretionaryDiscountCalcDecimal > 0) {
+          priceAfterY1 = baseProductPrice - appliedBulkDiscount - appliedRegionDiscount - appliedPaymentDiscount - appliedDiscretionaryDiscount;
+        }
+        productPricesAfterY1Discount[fruitType][productName] = Math.max(priceAfterY1, minimumPriceConverted);
+        
+        // Regular Discounts: base - bulk - region - payment - discretionary (if not first year only)
+        let priceAfterRegular = baseProductPrice - appliedBulkDiscount - appliedRegionDiscount - appliedPaymentDiscount;
+        if (!discountFirstYearOnly && discretionaryDiscountCalcDecimal > 0) {
+          priceAfterRegular -= appliedDiscretionaryDiscount;
+        }
+        productPricesAfterRegularDiscounts[fruitType][productName] = Math.max(priceAfterRegular, minimumPriceConverted);
         
         // Accumulate applied discounts
         totalAppliedBulkDiscount += appliedBulkDiscount;
@@ -825,7 +844,9 @@ function calculatePrice(formData) {
       success: true, 
       customerType, 
       productFinalPrices: finalProductPricesConverted, 
-      productTonnages: productTonnages, 
+      productPricesAfterY1Discount: productPricesAfterY1Discount,
+      productPricesAfterRegularDiscounts: productPricesAfterRegularDiscounts,
+      productTonnages: productTonnages,
       baseTotal: baseTotal, 
       totalTonnage: grandTotalTonnage, 
       currency, 
@@ -935,6 +956,62 @@ function createDocReport(resultData, templateId) {
       }
     }
     
+    // Create product breakdown with Y1 discount applied
+    let productBreakdownY1DiscountString = '';
+    if (resultData.productPricesAfterY1Discount && resultData.productTonnages) {
+      let breakdownLines = [];
+      for (let fruitType in resultData.productPricesAfterY1Discount) {
+        let fruitProducts = [];
+        let fruitTotal = 0;
+        
+        for (let productName in resultData.productPricesAfterY1Discount[fruitType]) {
+          const price = resultData.productPricesAfterY1Discount[fruitType][productName];
+          const tonnage = resultData.productTonnages[fruitType] ? (resultData.productTonnages[fruitType][productName] || 0) : 0;
+          fruitTotal += price;
+          const pricePerTonne = tonnage > 0 ? (price / tonnage).toFixed(2) : '0.00';
+          fruitProducts.push(`  ${productName} (${pricePerTonne}${currency}/t): ${formatCurrencyValue(price)}`);
+        }
+        
+        if (fruitProducts.length > 0) {
+          breakdownLines.push(`${fruitType} - Total: ${formatCurrencyValue(fruitTotal)}`);
+          breakdownLines.push(...fruitProducts);
+          breakdownLines.push('');
+        }
+      }
+      
+      if (breakdownLines.length > 0) {
+        productBreakdownY1DiscountString = breakdownLines.join('\n');
+      }
+    }
+    
+    // Create product breakdown with regular discounts applied
+    let productBreakdownDiscountString = '';
+    if (resultData.productPricesAfterRegularDiscounts && resultData.productTonnages) {
+      let breakdownLines = [];
+      for (let fruitType in resultData.productPricesAfterRegularDiscounts) {
+        let fruitProducts = [];
+        let fruitTotal = 0;
+        
+        for (let productName in resultData.productPricesAfterRegularDiscounts[fruitType]) {
+          const price = resultData.productPricesAfterRegularDiscounts[fruitType][productName];
+          const tonnage = resultData.productTonnages[fruitType] ? (resultData.productTonnages[fruitType][productName] || 0) : 0;
+          fruitTotal += price;
+          const pricePerTonne = tonnage > 0 ? (price / tonnage).toFixed(2) : '0.00';
+          fruitProducts.push(`  ${productName} (${pricePerTonne}${currency}/t): ${formatCurrencyValue(price)}`);
+        }
+        
+        if (fruitProducts.length > 0) {
+          breakdownLines.push(`${fruitType} - Total: ${formatCurrencyValue(fruitTotal)}`);
+          breakdownLines.push(...fruitProducts);
+          breakdownLines.push('');
+        }
+      }
+      
+      if (breakdownLines.length > 0) {
+        productBreakdownDiscountString = breakdownLines.join('\n');
+      }
+    }
+    
     // Create detailed add-on breakdown by product
     let addOnBreakdownString = '';
     if (resultData.addOnCosts && Object.keys(resultData.addOnCosts).length > 0) {
@@ -1010,6 +1087,8 @@ function createDocReport(resultData, templateId) {
       '{{Plan}}': naIfEmpty(resultData.planString), 
       '{{AddOnPlan}}': addOnPlanString,
       '{{ProductBreakdown}}': productBreakdownString,
+      '{{ProductBreakdownY1Discount}}': productBreakdownY1DiscountString,
+      '{{ProductBreakdownDiscount}}': productBreakdownDiscountString,
       '{{DiscountTotal}}': formatCurrencyValue(discountTotal),
       '{{Discounts}}': discountsLabel,
       '{{Region}}': resultData.region || '', 
@@ -1176,6 +1255,62 @@ function createGoogleDocReport(resultData, templateId) {
       }
     }
     
+    // Create product breakdown with Y1 discount applied
+    let productBreakdownY1DiscountString = '';
+    if (resultData.productPricesAfterY1Discount && resultData.productTonnages) {
+      let breakdownLines = [];
+      for (let fruitType in resultData.productPricesAfterY1Discount) {
+        let fruitProducts = [];
+        let fruitTotal = 0;
+        
+        for (let productName in resultData.productPricesAfterY1Discount[fruitType]) {
+          const price = resultData.productPricesAfterY1Discount[fruitType][productName];
+          const tonnage = resultData.productTonnages[fruitType] ? (resultData.productTonnages[fruitType][productName] || 0) : 0;
+          fruitTotal += price;
+          const pricePerTonne = tonnage > 0 ? (price / tonnage).toFixed(2) : '0.00';
+          fruitProducts.push(`  ${productName} (${pricePerTonne}${currency}/t): ${formatCurrencyValue(price)}`);
+        }
+        
+        if (fruitProducts.length > 0) {
+          breakdownLines.push(`${fruitType} - Total: ${formatCurrencyValue(fruitTotal)}`);
+          breakdownLines.push(...fruitProducts);
+          breakdownLines.push('');
+        }
+      }
+      
+      if (breakdownLines.length > 0) {
+        productBreakdownY1DiscountString = breakdownLines.join('\n');
+      }
+    }
+    
+    // Create product breakdown with regular discounts applied
+    let productBreakdownDiscountString = '';
+    if (resultData.productPricesAfterRegularDiscounts && resultData.productTonnages) {
+      let breakdownLines = [];
+      for (let fruitType in resultData.productPricesAfterRegularDiscounts) {
+        let fruitProducts = [];
+        let fruitTotal = 0;
+        
+        for (let productName in resultData.productPricesAfterRegularDiscounts[fruitType]) {
+          const price = resultData.productPricesAfterRegularDiscounts[fruitType][productName];
+          const tonnage = resultData.productTonnages[fruitType] ? (resultData.productTonnages[fruitType][productName] || 0) : 0;
+          fruitTotal += price;
+          const pricePerTonne = tonnage > 0 ? (price / tonnage).toFixed(2) : '0.00';
+          fruitProducts.push(`  ${productName} (${pricePerTonne}${currency}/t): ${formatCurrencyValue(price)}`);
+        }
+        
+        if (fruitProducts.length > 0) {
+          breakdownLines.push(`${fruitType} - Total: ${formatCurrencyValue(fruitTotal)}`);
+          breakdownLines.push(...fruitProducts);
+          breakdownLines.push('');
+        }
+      }
+      
+      if (breakdownLines.length > 0) {
+        productBreakdownDiscountString = breakdownLines.join('\n');
+      }
+    }
+    
     // Create detailed add-on breakdown by product
     let addOnBreakdownString = '';
     if (resultData.addOnCosts && Object.keys(resultData.addOnCosts).length > 0) {
@@ -1244,6 +1379,8 @@ function createGoogleDocReport(resultData, templateId) {
       '{{Plan}}': naIfEmpty(resultData.planString),
       '{{AddOnPlan}}': addOnPlanString,
       '{{ProductBreakdown}}': productBreakdownString,
+      '{{ProductBreakdownY1Discount}}': productBreakdownY1DiscountString,
+      '{{ProductBreakdownDiscount}}': productBreakdownDiscountString,
       '{{DiscountTotal}}': formatCurrencyValue(discountTotal),
       '{{Discounts}}': discountsLabel,
       '{{Region}}': resultData.region || '',
