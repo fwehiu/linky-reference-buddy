@@ -996,6 +996,10 @@ function createDocReport(resultData, templateId) {
     const annualDiscountSum = (resultData.regionDiscountAmount || 0) + (resultData.paymentFrequencyDiscountAmount || 0) + (!resultData.discretionaryFirstYearOnly ? (resultData.discretionaryDiscountAmount || 0) : 0);
     const discountsLabel = annualDiscountSum > 0 ? `Discounts: ${formatCurrencyValue(annualDiscountSum)}` : '';
     
+    // Calculate discount percentages (rounded to 0 decimal places)
+    const discountsPercent = (annualDiscountSum > 0 && roundedProductsTotal > 0) ? `${Math.round((annualDiscountSum / roundedProductsTotal) * 100)}%` : '';
+    const y1DiscountPercent = (resultData.discretionaryFirstYearOnly && resultData.discretionaryDiscountPercentDecimal > 0) ? `${Math.round(resultData.discretionaryDiscountPercentDecimal * 100)}%` : '';
+    
     const placeholders = { 
       '{{CalculationDate}}': new Date().toLocaleDateString('en-NZ', { year: 'numeric', month: 'short', day: 'numeric'}), 
       '{{CustomerType}}': resultData.customerType || '', 
@@ -1020,7 +1024,9 @@ function createDocReport(resultData, templateId) {
       '{{DiscretionaryDiscountPercent}}': formatPercentValue(resultData.discretionaryDiscountPercentDecimal), 
       '{{DiscretionaryDiscountAmount}}': formatAmount(-resultData.discretionaryDiscountAmount), 
       '{{Y1discount}}': (resultData.discretionaryFirstYearOnly && resultData.discretionaryDiscountPercentDecimal > 0) ? `Year 1 Discount: ${formatPercentValue(resultData.discretionaryDiscountPercentDecimal)}` : '', 
-      '{{MinPriceAdjustment}}': formatAmount(resultData.totalMinPriceAdjustments), 
+      '{{Y1discount%}}': y1DiscountPercent,
+      '{{Discounts%}}': discountsPercent,
+      '{{MinPriceAdjustment}}': formatAmount(resultData.totalMinPriceAdjustments),
       '{{AddonTotal}}': formatCurrencyValue(resultData.totalAddOnCost), 
       '{{CameraRental}}': formatAmount(resultData.cameraRental), 
       '{{Year1Cost}}': formatCurrencyValue(resultData.finalYear1Cost), 
@@ -1223,6 +1229,10 @@ function createGoogleDocReport(resultData, templateId) {
     const annualDiscountSum = (resultData.regionDiscountAmount || 0) + (resultData.paymentFrequencyDiscountAmount || 0) + (!resultData.discretionaryFirstYearOnly ? (resultData.discretionaryDiscountAmount || 0) : 0);
     const discountsLabel = annualDiscountSum > 0 ? `Discounts: ${formatCurrencyValue(annualDiscountSum)}` : '';
     
+    // Calculate discount percentages (rounded to 0 decimal places)
+    const discountsPercent = (annualDiscountSum > 0 && roundedProductsTotal > 0) ? `${Math.round((annualDiscountSum / roundedProductsTotal) * 100)}%` : '';
+    const y1DiscountPercent = (resultData.discretionaryFirstYearOnly && resultData.discretionaryDiscountPercentDecimal > 0) ? `${Math.round(resultData.discretionaryDiscountPercentDecimal * 100)}%` : '';
+    
     const placeholders = {
       '{{CalculationDate}}': new Date().toLocaleDateString('en-NZ', { year: 'numeric', month: 'short', day: 'numeric'}),
       '{{CustomerType}}': resultData.customerType || '',
@@ -1247,6 +1257,8 @@ function createGoogleDocReport(resultData, templateId) {
       '{{DiscretionaryDiscountPercent}}': formatPercentValue(resultData.discretionaryDiscountPercentDecimal),
       '{{DiscretionaryDiscountAmount}}': formatAmount(-resultData.discretionaryDiscountAmount),
       '{{Y1discount}}': (resultData.discretionaryFirstYearOnly && resultData.discretionaryDiscountPercentDecimal > 0) ? `Year 1 Discount: ${formatPercentValue(resultData.discretionaryDiscountPercentDecimal)}` : '',
+      '{{Y1discount%}}': y1DiscountPercent,
+      '{{Discounts%}}': discountsPercent,
       '{{MinPriceAdjustment}}': formatAmount(resultData.totalMinPriceAdjustments),
       '{{AddonTotal}}': formatCurrencyValue(resultData.totalAddOnCost),
       '{{CameraRental}}': formatAmount(resultData.cameraRental),
