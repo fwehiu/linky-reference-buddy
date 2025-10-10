@@ -607,14 +607,18 @@ function calculatePrice(formData) {
         if (discountFirstYearOnly && discretionaryDiscountCalcDecimal > 0) {
           priceAfterY1 = baseProductPrice - appliedBulkDiscount - appliedRegionDiscount - appliedPaymentDiscount - appliedDiscretionaryDiscount;
         }
-        productPricesAfterY1Discount[fruitType][productName] = Math.max(priceAfterY1, minimumPriceConverted);
+        const exactPriceAfterY1 = Math.max(priceAfterY1, minimumPriceConverted);
+        // Round to nearest 100s for non-hardware products
+        productPricesAfterY1Discount[fruitType][productName] = productName.toLowerCase().includes('hardware') ? exactPriceAfterY1 : roundUpToNearestHundred(exactPriceAfterY1);
         
         // Regular Discounts: base - bulk - region - payment - discretionary (if not first year only)
         let priceAfterRegular = baseProductPrice - appliedBulkDiscount - appliedRegionDiscount - appliedPaymentDiscount;
         if (!discountFirstYearOnly && discretionaryDiscountCalcDecimal > 0) {
           priceAfterRegular -= appliedDiscretionaryDiscount;
         }
-        productPricesAfterRegularDiscounts[fruitType][productName] = Math.max(priceAfterRegular, minimumPriceConverted);
+        const exactPriceAfterRegular = Math.max(priceAfterRegular, minimumPriceConverted);
+        // Round to nearest 100s for non-hardware products
+        productPricesAfterRegularDiscounts[fruitType][productName] = productName.toLowerCase().includes('hardware') ? exactPriceAfterRegular : roundUpToNearestHundred(exactPriceAfterRegular);
         
         // Accumulate applied discounts
         totalAppliedBulkDiscount += appliedBulkDiscount;
@@ -1065,13 +1069,17 @@ function createDocReport(resultData, templateId) {
     const cameraCostText = hasCameras ? formatCurrencyValue(resultData.cameraRental) : '';
     const cameraRentalLabel = hasCameras ? 'Camera Rental:' : '';
     
-    // Annual discounts sum (region + payment + discretionary if not first-year-only)
-    const annualDiscountSum = (resultData.regionDiscountAmount || 0) + (resultData.paymentFrequencyDiscountAmount || 0) + (!resultData.discretionaryFirstYearOnly ? (resultData.discretionaryDiscountAmount || 0) : 0);
+    // Annual discounts sum (region + payment + discretionary if not first-year-only) - Use rounded values
+    const roundedRegionDiscount = resultData.regionDiscountAmount || 0;
+    const roundedPaymentDiscount = resultData.paymentFrequencyDiscountAmount || 0;
+    const roundedDiscretionaryDiscount = resultData.discretionaryDiscountAmount || 0;
+    const annualDiscountSum = roundedRegionDiscount + roundedPaymentDiscount + (!resultData.discretionaryFirstYearOnly ? roundedDiscretionaryDiscount : 0);
     const discountsLabel = annualDiscountSum > 0 ? `Discounts: ${formatCurrencyValue(annualDiscountSum)}` : '';
     
     // Calculate discount percentages (rounded to 0 decimal places)
     const discountsPercent = (annualDiscountSum > 0 && roundedProductsTotal > 0) ? `${Math.round((annualDiscountSum / roundedProductsTotal) * 100)}%` : '';
-    const y1DiscountPercent = (resultData.discretionaryFirstYearOnly && resultData.discretionaryDiscountPercentDecimal > 0) ? `${Math.round(resultData.discretionaryDiscountPercentDecimal * 100)}%` : '';
+    const y1DiscountAmount = resultData.discretionaryFirstYearOnly ? roundedDiscretionaryDiscount : 0;
+    const y1DiscountPercent = (y1DiscountAmount > 0 && roundedProductsTotal > 0) ? `${Math.round((y1DiscountAmount / roundedProductsTotal) * 100)}%` : '';
     
     const placeholders = { 
       '{{CalculationDate}}': new Date().toLocaleDateString('en-NZ', { year: 'numeric', month: 'short', day: 'numeric'}), 
@@ -1357,13 +1365,17 @@ function createGoogleDocReport(resultData, templateId) {
     const cameraCostText = hasCameras ? formatCurrencyValue(resultData.cameraRental) : '';
     const cameraRentalLabel = hasCameras ? 'Camera Rental:' : '';
     
-    // Annual discounts sum
-    const annualDiscountSum = (resultData.regionDiscountAmount || 0) + (resultData.paymentFrequencyDiscountAmount || 0) + (!resultData.discretionaryFirstYearOnly ? (resultData.discretionaryDiscountAmount || 0) : 0);
+    // Annual discounts sum - Use rounded values
+    const roundedRegionDiscount = resultData.regionDiscountAmount || 0;
+    const roundedPaymentDiscount = resultData.paymentFrequencyDiscountAmount || 0;
+    const roundedDiscretionaryDiscount = resultData.discretionaryDiscountAmount || 0;
+    const annualDiscountSum = roundedRegionDiscount + roundedPaymentDiscount + (!resultData.discretionaryFirstYearOnly ? roundedDiscretionaryDiscount : 0);
     const discountsLabel = annualDiscountSum > 0 ? `Discounts: ${formatCurrencyValue(annualDiscountSum)}` : '';
     
     // Calculate discount percentages (rounded to 0 decimal places)
     const discountsPercent = (annualDiscountSum > 0 && roundedProductsTotal > 0) ? `${Math.round((annualDiscountSum / roundedProductsTotal) * 100)}%` : '';
-    const y1DiscountPercent = (resultData.discretionaryFirstYearOnly && resultData.discretionaryDiscountPercentDecimal > 0) ? `${Math.round(resultData.discretionaryDiscountPercentDecimal * 100)}%` : '';
+    const y1DiscountAmount = resultData.discretionaryFirstYearOnly ? roundedDiscretionaryDiscount : 0;
+    const y1DiscountPercent = (y1DiscountAmount > 0 && roundedProductsTotal > 0) ? `${Math.round((y1DiscountAmount / roundedProductsTotal) * 100)}%` : '';
     
     const placeholders = {
       '{{CalculationDate}}': new Date().toLocaleDateString('en-NZ', { year: 'numeric', month: 'short', day: 'numeric'}),
