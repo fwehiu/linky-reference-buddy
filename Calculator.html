@@ -1041,14 +1041,7 @@
                 <input type="text" id="salesContact" placeholder="Enter salesperson name">
               </div>
               
-              <div class="form-group">
-                <label for="customerType">Customer Type:</label>
-                  <select id="customerType">
-                    <option value="Grower">Grower</option>
-                    <option value="Packer">Packer</option>
-                    <option value="Packer & Grower">Packer & Grower</option>
-                  </select>
-              </div>
+              <!-- Customer Type removed - all products are now Grower & Packer -->
               
               <div class="form-group">
                 <label for="region">Country/Region:</label>
@@ -1467,7 +1460,6 @@
     });
     
     function setupEventListeners() {
-      document.getElementById('customerType').addEventListener('change', handleCustomerTypeChange);
       document.getElementById('fruitType').addEventListener('change', handleFruitTypeChange);
       document.getElementById('addFruitButton').addEventListener('click', handleAddFruit);
       document.getElementById('calculateButton').addEventListener('click', handleCalculate);
@@ -1500,7 +1492,7 @@
       console.log("Data Received:", receivedData);
       data = receivedData;
       
-      if (!data?.growerTypes || !data?.packerTypes || !data?.regions || 
+      if (!data?.fruitTypes || !data?.products || !data?.regions || 
           !data?.currencies || !data?.paymentFrequencies || !data?.addOns || 
           !data?.tieredBulkDiscounts || !data?.minimumPrices || 
           data?.cameraRentalPriceNZD === undefined || data?.inflationRateDecimal === undefined) {
@@ -1509,7 +1501,7 @@
         return;
       }
       
-      populateCustomerType();
+      populateFruitTypes();
       populateRegions();
       populateCurrencies();
       populatePaymentFrequencies();
@@ -1542,22 +1534,13 @@
     }
 
     // --- UI Population Functions ---
-    function populateCustomerType() {
-      handleCustomerTypeChange();
-    }
     
     function populateFruitTypes() {
-      const custType = document.getElementById('customerType').value;
       const sel = document.getElementById('fruitType');
       sel.innerHTML = '<option value="">-- Select Fruit --</option>';
       
-      let types = [];
-      if (custType === 'Packer & Grower') {
-        const set = new Set([...(data.growerTypes || []), ...(data.packerTypes || [])]);
-        types = Array.from(set);
-      } else {
-        types = (custType === 'Grower' ? (data.growerTypes || []) : (data.packerTypes || []));
-      }
+      // Use unified fruit types
+      const types = data.fruitTypes || [];
       types.forEach(f => {
         const opt = document.createElement('option');
         opt.value = f;
@@ -1570,7 +1553,6 @@
     }
     
     function populateProducts(fruitType) {
-      const custType = document.getElementById('customerType').value;
       const cont = document.getElementById('productsCheckboxes');
       const title = document.getElementById('currentProductsTitle');
       currentFruitSelection.products = [];
@@ -1585,13 +1567,8 @@
       title.textContent = `Select Products for ${fruitType}:`;
       cont.innerHTML = '';
       
-       let prods = [];
-       if (custType === 'Packer & Grower') {
-         const set = new Set([...(data.growerProducts || []), ...(data.packerProducts || [])]);
-         prods = Array.from(set);
-       } else {
-         prods = (custType === 'Grower' ? (data.growerProducts || []) : (data.packerProducts || []));
-       }
+      // Use unified products
+      const prods = data.products || [];
       
       if (prods.length === 0) {
         cont.innerHTML = '<p>No products available.</p>';
@@ -1855,16 +1832,6 @@
     }
 
     // --- Event Handlers ---
-    function handleCustomerTypeChange() {
-      selectedFruitsData = {};
-      currentFruitSelection = { type: null, products: [], addOns: [] };
-      
-      populateFruitTypes();
-      updateSelectedFruitsDisplay();
-      toggleCameraOptions();
-      updateRegionDiscountDisplay();
-      updatePaymentDiscountDisplay();
-    }
     
     function handleFruitTypeChange() {
       currentFruitSelection.type = document.getElementById('fruitType').value;
@@ -2157,7 +2124,6 @@
     function updateRegionDiscountDisplay() {
       const sel = document.getElementById('region');
       const span = document.getElementById('regionDiscountDisplay');
-      const cust = document.getElementById('customerType').value;
       
       if (!data || !sel.value) {
         span.textContent = '';
@@ -2168,9 +2134,7 @@
       let dec = 0;
       
       if (idx !== -1) {
-        dec = cust === 'Grower' ? 
-              (data.growerRegionDiscounts?.[idx] ?? 0) : 
-              (data.packerRegionDiscounts?.[idx] ?? 0);
+        dec = data.regionDiscounts?.[idx] ?? 0;
       }
       
       span.textContent = dec > 0 ? `(${formatPercent(dec)} discount)` : '';
@@ -2251,7 +2215,6 @@
       }
       
       const formData = {
-        customerType: document.getElementById('customerType').value,
         selectedFruits: selectedFruitsData,
         region,
         currency,

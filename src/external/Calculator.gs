@@ -101,46 +101,42 @@ function getData() {
       throw new Error(`Required sheets not found.`);
     }
 
-    var growerFruitTypesRaw = baseRatesSheet.getRange('A3:A' + baseRatesSheet.getLastRow()).getValues().flat();
-    var packerFruitTypesRaw = baseRatesSheet.getRange('K3:K' + baseRatesSheet.getLastRow()).getValues().flat();
-    var growerProductsRaw = baseRatesSheet.getRange('B2:I2').getValues().flat();
-    var packerProductsRaw = baseRatesSheet.getRange('L2:N2').getValues().flat();
+    // Unified products from columns B to L (row 2 for headers)
+    var productsRaw = baseRatesSheet.getRange('B2:L2').getValues().flat();
+    // Unified fruit types from column A (starting at row 3)
+    var fruitTypesRaw = baseRatesSheet.getRange('A3:A' + baseRatesSheet.getLastRow()).getValues().flat();
 
     const trimAndFilter = arr => arr.map(item => typeof item === 'string' ? item.trim() : item).filter(item => item !== null && item !== undefined && item !== '');
 
-    var growerFruitTypes = trimAndFilter(growerFruitTypesRaw);
-    var packerFruitTypes = trimAndFilter(packerFruitTypesRaw);
-    var growerProducts = trimAndFilter(growerProductsRaw);
-    var packerProducts = trimAndFilter(packerProductsRaw);
+    var fruitTypes = trimAndFilter(fruitTypesRaw);
+    var products = trimAndFilter(productsRaw);
 
-    var growerRates = baseRatesSheet.getRange(3, 2, growerFruitTypes.length || 1, growerProducts.length || 1).getValues();
-    var packerRates = baseRatesSheet.getRange(3, 8, packerFruitTypes.length || 1, packerProducts.length || 1).getValues();
+    // Rates from columns B to L (starting at row 3)
+    var rates = baseRatesSheet.getRange(3, 2, fruitTypes.length || 1, products.length || 1).getValues();
 
     var currencyData = discountsSheet.getRange('P3:Q' + discountsSheet.getLastRow()).getValues();
     var currencies = [];
-    var rates = [];
+    var currencyRates = [];
 
     currencyData.forEach(row => {
       if (row[0] && !isNaN(parseFloat(row[1])) && isFinite(row[1])) {
         currencies.push(String(row[0]).trim());
-        rates.push(parseFloat(row[1]));
+        currencyRates.push(parseFloat(row[1]));
       }
     });
 
-    var regionData = discountsSheet.getRange('I3:K' + discountsSheet.getLastRow()).getValues();
+    // Region data - now using single discount column (column J for discount)
+    var regionData = discountsSheet.getRange('I3:J' + discountsSheet.getLastRow()).getValues();
     var regions = [];
-    var growerRegionDiscounts = [];
-    var packerRegionDiscounts = [];
+    var regionDiscounts = [];
 
     regionData.forEach(row => {
       var region = String(row[0] || '').trim();
-      var growerDiscount = !isNaN(parseFloat(row[1])) && isFinite(row[1]) ? parseFloat(row[1]) : 0;
-      var packerDiscount = !isNaN(parseFloat(row[2])) && isFinite(row[2]) ? parseFloat(row[2]) : 0;
+      var discount = !isNaN(parseFloat(row[1])) && isFinite(row[1]) ? parseFloat(row[1]) : 0;
 
       if (region) {
         regions.push(region);
-        growerRegionDiscounts.push(growerDiscount);
-        packerRegionDiscounts.push(packerDiscount);
+        regionDiscounts.push(discount);
       }
     });
 
@@ -303,7 +299,7 @@ function getData() {
     } catch (e) {
       Logger.log('Rental add-on read error: ' + e);
     }
-    return { growerTypes: growerFruitTypes, packerTypes: packerFruitTypes, growerProducts: growerProducts, packerProducts: packerProducts, growerRates: growerRates, packerRates: packerRates, currencies: currencies, currencyRates: rates, regions: regions, growerRegionDiscounts: growerRegionDiscounts, packerRegionDiscounts: packerRegionDiscounts, paymentFrequencies: paymentFrequencies, tieredBulkDiscounts: tieredBulkDiscounts, addOns: addOns, cameraRentalPriceNZD: cameraRentalPriceNZD, inflationRateDecimal: inflationRateDecimal, minimumPrices: minimumPrices, oneOffAddOnProducts: oneOffAddOnProducts, rentalAddOnProducts: rentalAddOnProducts };
+    return { fruitTypes: fruitTypes, products: products, rates: rates, currencies: currencies, currencyRates: currencyRates, regions: regions, regionDiscounts: regionDiscounts, paymentFrequencies: paymentFrequencies, tieredBulkDiscounts: tieredBulkDiscounts, addOns: addOns, cameraRentalPriceNZD: cameraRentalPriceNZD, inflationRateDecimal: inflationRateDecimal, minimumPrices: minimumPrices, oneOffAddOnProducts: oneOffAddOnProducts, rentalAddOnProducts: rentalAddOnProducts };
   } catch (e) { 
     Logger.log(`GetData Error: ${e}\n${e.stack}`); 
     return { error: `Data fetch failed: ${e.message}` }; 
@@ -322,7 +318,6 @@ function calculatePrice(formData) {
       return { error: "Failed to load critical data. Check logs." }; 
     }
 
-    var customerType = formData.customerType; 
     var selectedFruits = formData.selectedFruits; 
     var region = formData.region; 
     var currency = formData.currency; 
@@ -336,14 +331,15 @@ function calculatePrice(formData) {
     var companyAddress = formData.companyAddress || "";
     var salesContact = formData.salesContact || ""; 
     
-    var fruitTypes = customerType === 'Grower' ? data.growerTypes : data.packerTypes; 
-    var productsList = customerType === 'Grower' ? data.growerProducts : data.packerProducts; 
-    var ratesTable = customerType === 'Grower' ? data.growerRates : data.packerRates; 
+    // Unified data - no more grower/packer split
+    var fruitTypes = data.fruitTypes; 
+    var productsList = data.products; 
+    var ratesTable = data.rates; 
     
     var regionDiscountDecimal = 0; 
     var regionIndex = data.regions.indexOf(region); 
     if (regionIndex !== -1) { 
-      regionDiscountDecimal = customerType === 'Grower' ? data.growerRegionDiscounts[regionIndex] : data.packerRegionDiscounts[regionIndex]; 
+      regionDiscountDecimal = data.regionDiscounts[regionIndex]; 
     } 
     
     var paymentFrequencyDiscountDecimal = data.paymentFrequencies[paymentFrequencyKey] || 0; 
@@ -410,21 +406,6 @@ function calculatePrice(formData) {
           if (rate !== null && !isNaN(parseFloat(rate)) && isFinite(rate)) {
             productBaseCostNZD = parseFloat(rate) * prodTon;
           }
-        } else {
-          // Fallback: product may belong to the other catalogue (Packer vs Grower)
-          const altProductsList = customerType === 'Grower' ? (data.packerProducts || []) : (data.growerProducts || []);
-          const altRatesTable = customerType === 'Grower' ? (data.packerRates || []) : (data.growerRates || []);
-          const altTypes = customerType === 'Grower' ? (data.packerTypes || []) : (data.growerTypes || []);
-          const altFruitIndex = altTypes.indexOf(fruitType);
-          if (altFruitIndex !== -1) {
-            const altIdx = altProductsList.indexOf(productName);
-            if (altIdx !== -1) {
-              const altRate = (altRatesTable[altFruitIndex]?.[altIdx] !== undefined) ? altRatesTable[altFruitIndex][altIdx] : null;
-              if (altRate !== null && !isNaN(parseFloat(altRate)) && isFinite(altRate)) {
-                productBaseCostNZD = parseFloat(altRate) * prodTon;
-              }
-            }
-          }
         }
 
         // Enforce product minimum price rule (NZD): cost = max(baseRate*Tonnage, product minimum)
@@ -486,7 +467,7 @@ function calculatePrice(formData) {
 
     // Calculate Camera rental (convert to selected currency)
     var cameraRentalCost = 0;
-    if (customerType === 'Packer' && includeCamera && cameraCount > 0) {
+    if (includeCamera && cameraCount > 0) {
       cameraRentalCost = cameraCount * data.cameraRentalPriceNZD * currencyRate;
     }
     var roundedCameraRental = roundUpToNearestHundred(cameraRentalCost);
@@ -846,7 +827,6 @@ function calculatePrice(formData) {
 
     return { 
       success: true, 
-      customerType, 
       productFinalPrices: finalProductPricesConverted, 
       productPricesAfterY1Discount: productPricesAfterY1Discount,
       productPricesAfterRegularDiscounts: productPricesAfterRegularDiscounts,
@@ -1088,7 +1068,6 @@ function createDocReport(resultData, templateId) {
     
     const placeholders = { 
       '{{CalculationDate}}': new Date().toLocaleDateString('en-NZ', { year: 'numeric', month: 'short', day: 'numeric'}), 
-      '{{CustomerType}}': resultData.customerType || '', 
       '{{Company}}': naIfEmpty(resultData.companyName), 
       '{{CompanyAddress}}': naIfEmpty(resultData.companyAddress),
       '{{Sales}}': naIfEmpty(resultData.salesContact), 
@@ -1384,7 +1363,6 @@ function createGoogleDocReport(resultData, templateId) {
     
     const placeholders = {
       '{{CalculationDate}}': new Date().toLocaleDateString('en-NZ', { year: 'numeric', month: 'short', day: 'numeric'}),
-      '{{CustomerType}}': resultData.customerType || '',
       '{{Company}}': naIfEmpty(resultData.companyName),
       '{{CompanyAddress}}': naIfEmpty(resultData.companyAddress),
       '{{Sales}}': naIfEmpty(resultData.salesContact),
