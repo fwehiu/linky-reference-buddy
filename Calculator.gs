@@ -5,7 +5,7 @@
 
 // --- Constants ---
 const BULK_DISCOUNT_SHEET_NAME = 'Bulk Discounts';
-const BASE_RATES_SHEET_NAME = 'Base Rates per Fruit Type';
+const BASE_RATES_SHEET_NAME = 'Base Rates per Fruit Type [USD]';
 const CAMERA_PRICE_CELL = 'E3';
 const INFLATION_RATE_CELL = 'D3';
 const MIN_PRICE_START_ROW = 6;
@@ -101,20 +101,16 @@ function getData() {
       throw new Error(`Required sheets not found.`);
     }
 
-    var growerFruitTypesRaw = baseRatesSheet.getRange('A3:A' + baseRatesSheet.getLastRow()).getValues().flat();
-    var packerFruitTypesRaw = baseRatesSheet.getRange('K3:K' + baseRatesSheet.getLastRow()).getValues().flat();
-    var growerProductsRaw = baseRatesSheet.getRange('B2:I2').getValues().flat();
-    var packerProductsRaw = baseRatesSheet.getRange('L2:N2').getValues().flat();
+    // Unified product structure - all products from columns B to L
+    var fruitTypesRaw = baseRatesSheet.getRange('A3:A' + baseRatesSheet.getLastRow()).getValues().flat();
+    var productsRaw = baseRatesSheet.getRange('B2:L2').getValues().flat();
 
     const trimAndFilter = arr => arr.map(item => typeof item === 'string' ? item.trim() : item).filter(item => item !== null && item !== undefined && item !== '');
 
-    var growerFruitTypes = trimAndFilter(growerFruitTypesRaw);
-    var packerFruitTypes = trimAndFilter(packerFruitTypesRaw);
-    var growerProducts = trimAndFilter(growerProductsRaw);
-    var packerProducts = trimAndFilter(packerProductsRaw);
+    var fruitTypes = trimAndFilter(fruitTypesRaw);
+    var products = trimAndFilter(productsRaw);
 
-    var growerRates = baseRatesSheet.getRange(3, 2, growerFruitTypes.length || 1, growerProducts.length || 1).getValues();
-    var packerRates = baseRatesSheet.getRange(3, 12, packerFruitTypes.length || 1, packerProducts.length || 1).getValues();
+    var rates = baseRatesSheet.getRange(3, 2, fruitTypes.length || 1, products.length || 1).getValues();
 
     var currencyData = discountsSheet.getRange('P3:Q' + discountsSheet.getLastRow()).getValues();
     var currencies = [];
@@ -127,20 +123,17 @@ function getData() {
       }
     });
 
-    var regionData = discountsSheet.getRange('I3:K' + discountsSheet.getLastRow()).getValues();
+    var regionData = discountsSheet.getRange('I3:J' + discountsSheet.getLastRow()).getValues();
     var regions = [];
-    var growerRegionDiscounts = [];
-    var packerRegionDiscounts = [];
+    var regionDiscounts = [];
 
     regionData.forEach(row => {
       var region = String(row[0] || '').trim();
-      var growerDiscount = !isNaN(parseFloat(row[1])) && isFinite(row[1]) ? parseFloat(row[1]) : 0;
-      var packerDiscount = !isNaN(parseFloat(row[2])) && isFinite(row[2]) ? parseFloat(row[2]) : 0;
+      var discount = !isNaN(parseFloat(row[1])) && isFinite(row[1]) ? parseFloat(row[1]) : 0;
 
       if (region) {
         regions.push(region);
-        growerRegionDiscounts.push(growerDiscount);
-        packerRegionDiscounts.push(packerDiscount);
+        regionDiscounts.push(discount);
       }
     });
 
@@ -310,7 +303,7 @@ function getData() {
       rentalAddOnProducts = [];
     }
 
-    return { growerTypes: growerFruitTypes, packerTypes: packerFruitTypes, growerProducts: growerProducts, packerProducts: packerProducts, growerRates: growerRates, packerRates: packerRates, currencies: currencies, currencyRates: rates, regions: regions, growerRegionDiscounts: growerRegionDiscounts, packerRegionDiscounts: packerRegionDiscounts, paymentFrequencies: paymentFrequencies, tieredBulkDiscounts: tieredBulkDiscounts, addOns: addOns, cameraRentalPriceNZD: cameraRentalPriceNZD, inflationRateDecimal: inflationRateDecimal, minimumPrices: minimumPrices, oneOffAddOnProducts: oneOffAddOnProducts, rentalAddOnProducts: rentalAddOnProducts };
+    return { fruitTypes: fruitTypes, products: products, rates: rates, currencies: currencies, currencyRates: currencyRates, regions: regions, regionDiscounts: regionDiscounts, paymentFrequencies: paymentFrequencies, tieredBulkDiscounts: tieredBulkDiscounts, addOns: addOns, cameraRentalPriceNZD: cameraRentalPriceNZD, inflationRateDecimal: inflationRateDecimal, minimumPrices: minimumPrices, oneOffAddOnProducts: oneOffAddOnProducts, rentalAddOnProducts: rentalAddOnProducts };
   } catch (e) { 
     Logger.log(`GetData Error: ${e}\n${e.stack}`); 
     return { error: `Data fetch failed: ${e.message}` }; 
@@ -329,7 +322,6 @@ function calculatePrice(formData) {
       return { error: "Failed to load critical data. Check logs." }; 
     }
 
-    var customerType = formData.customerType; 
     var selectedFruits = formData.selectedFruits; 
     var region = formData.region; 
     var currency = formData.currency; 
@@ -345,16 +337,16 @@ function calculatePrice(formData) {
     var oneOffAddOns = formData.oneOffAddOns || []; 
     var rentalAddOns = formData.rentalAddOns || []; 
     
-    var combinedFruitTypes = Array.from(new Set([...(data.growerTypes || []), ...(data.packerTypes || [])])); 
-    var fruitTypes = (customerType === 'Grower') ? data.growerTypes : (customerType === 'Packer') ? data.packerTypes : combinedFruitTypes; 
-    var productsList = (customerType === 'Grower') ? data.growerProducts : data.packerProducts; 
-    var ratesTable = (customerType === 'Grower') ? data.growerRates : data.packerRates; 
+    // Unified product structure
+    var fruitTypes = data.fruitTypes || [];
+    var productsList = data.products || [];
+    var ratesTable = data.rates || [];
     
     var regionDiscountDecimal = 0; 
     var regionIndex = data.regions.indexOf(region); 
     if (regionIndex !== -1) { 
-      regionDiscountDecimal = (customerType === 'Grower') ? data.growerRegionDiscounts[regionIndex] : data.packerRegionDiscounts[regionIndex]; 
-    } 
+      regionDiscountDecimal = data.regionDiscounts[regionIndex]; 
+    }
     
     var paymentFrequencyDiscountDecimal = data.paymentFrequencies[paymentFrequencyKey] || 0; 
     
@@ -391,9 +383,9 @@ function calculatePrice(formData) {
       var fruitType = String(fruitTypeKey || '').trim();
       var productsData = fruitInfo.products || {};
       var selectedAddOns = fruitInfo.addOns || [];
-      // Determine source table for this fruit (supports 'Packer & Grower')
-      var usingSource = customerType === 'Grower' ? 'Grower' : (customerType === 'Packer' ? 'Packer' : ((data.growerTypes || []).indexOf(fruitType) !== -1 ? 'Grower' : 'Packer'));
-      var fruitIndexLocal = usingSource === 'Grower' ? (data.growerTypes || []).indexOf(fruitType) : (data.packerTypes || []).indexOf(fruitType);
+      
+      // Unified structure - find fruit index directly
+      var fruitIndexLocal = fruitTypes.indexOf(fruitType);
 
       if (fruitIndexLocal === -1 || Object.keys(productsData).length === 0) continue;
 
@@ -414,31 +406,14 @@ function calculatePrice(formData) {
         grandTotalTonnage += prodTon;
         currentFruitTotalTonnage += prodTon;
 
-        let productsArr = usingSource === 'Grower' ? (data.growerProducts || []) : (data.packerProducts || []);
-        let ratesRow = usingSource === 'Grower' ? (data.growerRates[fruitIndexLocal] || []) : (data.packerRates[fruitIndexLocal] || []);
-        let productIndex = productsArr.indexOf(productName);
+        let productIndex = productsList.indexOf(productName);
+        let ratesRow = ratesTable[fruitIndexLocal] || [];
         let productBaseCostNZD = 0;
 
         if (productIndex !== -1) {
           let rate = (ratesRow[productIndex] !== undefined) ? ratesRow[productIndex] : null;
           if (rate !== null && !isNaN(parseFloat(rate)) && isFinite(rate)) {
             productBaseCostNZD = parseFloat(rate) * prodTon;
-          }
-        } else {
-          // Fallback: in 'Packer & Grower' mode, product might belong to the other source list
-          const altSource = usingSource === 'Grower' ? 'Packer' : 'Grower';
-          const altTypes = altSource === 'Grower' ? (data.growerTypes || []) : (data.packerTypes || []);
-          const altFruitIndex = altTypes.indexOf(fruitType);
-          if (altFruitIndex !== -1) {
-            const altProducts = altSource === 'Grower' ? (data.growerProducts || []) : (data.packerProducts || []);
-            const altRates = altSource === 'Grower' ? (data.growerRates[altFruitIndex] || []) : (data.packerRates[altFruitIndex] || []);
-            const altIdx = altProducts.indexOf(productName);
-            if (altIdx !== -1) {
-              const altRate = (altRates[altIdx] !== undefined) ? altRates[altIdx] : null;
-              if (altRate !== null && !isNaN(parseFloat(altRate)) && isFinite(altRate)) {
-                productBaseCostNZD = parseFloat(altRate) * prodTon;
-              }
-            }
           }
         }
 
@@ -501,7 +476,7 @@ function calculatePrice(formData) {
 
     // Calculate Camera rental (convert to selected currency)
     var cameraRentalCost = 0;
-    if (customerType === 'Packer' && includeCamera && cameraCount > 0) {
+    if (includeCamera && cameraCount > 0) {
       cameraRentalCost = cameraCount * data.cameraRentalPriceNZD * currencyRate;
     }
     var roundedCameraRental = roundUpToNearestHundred(cameraRentalCost);
@@ -850,7 +825,7 @@ function calculatePrice(formData) {
 
     return { 
       success: true, 
-      customerType, 
+      productFinalPrices: finalProductPricesConverted,
       productFinalPrices: finalProductPricesConverted, 
       productPricesAfterY1Discount: productPricesAfterY1Discount,
       productPricesAfterRegularDiscounts: productPricesAfterRegularDiscounts,
@@ -1083,7 +1058,7 @@ function createDocReport(resultData, templateId) {
     
     const placeholders = { 
       '{{CalculationDate}}': new Date().toLocaleDateString('en-NZ', { year: 'numeric', month: 'short', day: 'numeric'}), 
-      '{{CustomerType}}': resultData.customerType || '', 
+      '{{CustomerType}}': 'Grower & Packer',
       '{{Company}}': naIfEmpty(resultData.companyName), 
       '{{CompanyAddress}}': naIfEmpty(resultData.companyAddress),
       '{{Sales}}': naIfEmpty(resultData.salesContact), 
@@ -1379,7 +1354,7 @@ function createGoogleDocReport(resultData, templateId) {
     
     const placeholders = {
       '{{CalculationDate}}': new Date().toLocaleDateString('en-NZ', { year: 'numeric', month: 'short', day: 'numeric'}),
-      '{{CustomerType}}': resultData.customerType || '',
+      '{{CustomerType}}': 'Grower & Packer',
       '{{Company}}': naIfEmpty(resultData.companyName),
       '{{CompanyAddress}}': naIfEmpty(resultData.companyAddress),
       '{{Sales}}': naIfEmpty(resultData.salesContact),

@@ -5,7 +5,7 @@
 
 // --- Constants ---
 const BULK_DISCOUNT_SHEET_NAME = 'Bulk Discounts';
-const BASE_RATES_SHEET_NAME = 'Base Rates per Fruit Type';
+const BASE_RATES_SHEET_NAME = 'Base Rates per Fruit Type [USD]';
 const CAMERA_PRICE_CELL = 'E3';
 const INFLATION_RATE_CELL = 'D3';
 const MIN_PRICE_START_ROW = 6;
