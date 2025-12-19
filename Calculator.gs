@@ -114,12 +114,12 @@ function getData() {
 
     var currencyData = discountsSheet.getRange('P3:Q' + discountsSheet.getLastRow()).getValues();
     var currencies = [];
-    var rates = [];
+    var currencyRates = [];
 
     currencyData.forEach(row => {
       if (row[0] && !isNaN(parseFloat(row[1])) && isFinite(row[1])) {
         currencies.push(String(row[0]).trim());
-        rates.push(parseFloat(row[1]));
+        currencyRates.push(parseFloat(row[1]));
       }
     });
 
