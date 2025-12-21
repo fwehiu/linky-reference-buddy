@@ -266,28 +266,25 @@ function getData() {
         }
       });
     }
-    // Read one-off add-on products from 'Base Rates per Fruit Type' Q2:R2 (names) and Q3:R3 (prices), all USD
+    // One-off Add-on Products from Base Rates per Fruit Type - Column O (O2 name, O3 price)
     var oneOffAddOnProducts = [];
     try {
-      var oneOffNamesRow = baseRatesSheet.getRange('Q2:R2').getValues()[0] || [];
-      var oneOffPricesRow = baseRatesSheet.getRange('Q3:R3').getValues()[0] || [];
-      for (var i = 0; i < oneOffNamesRow.length; i++) {
-        var nm = String(oneOffNamesRow[i] || '').trim();
-        var prRaw = oneOffPricesRow[i];
-        var pr = parseFloat(String(prRaw).toString().replace(/[^0-9.-]+/g, ''));
-        if (nm) {
-          oneOffAddOnProducts.push({ name: nm, price: isNaN(pr) ? 0 : pr });
-        }
+      var oneOffName = String(baseRatesSheet.getRange('O2').getValue() || '').trim();
+      var oneOffPriceRaw = baseRatesSheet.getRange('O3').getValue();
+      var oneOffPrice = parseFloat(String(oneOffPriceRaw === undefined ? '' : oneOffPriceRaw).replace(/[^0-9.-]+/g, ''));
+      if (oneOffName) {
+        var priceVal = (!isNaN(oneOffPrice) && isFinite(oneOffPrice)) ? oneOffPrice : 0;
+        oneOffAddOnProducts.push({ name: oneOffName, price: priceVal });
       }
     } catch (e) {
       Logger.log('One-off add-on read error: ' + e);
     }
     
-    // Read rental add-on products from 'Base Rates per Fruit Type' T2:U2 (names) and T3:U3 (prices), USD per year
+    // Rental Add-on Products from Base Rates per Fruit Type - Columns Q and R (Q2:R2 names, Q3:R3 prices)
     var rentalAddOnProducts = [];
     try {
-      var rentalNamesRow = baseRatesSheet.getRange('T2:U2').getValues()[0] || [];
-      var rentalPricesRow = baseRatesSheet.getRange('T3:U3').getValues()[0] || [];
+      var rentalNamesRow = baseRatesSheet.getRange('Q2:R2').getValues()[0] || [];
+      var rentalPricesRow = baseRatesSheet.getRange('Q3:R3').getValues()[0] || [];
       for (var j = 0; j < rentalNamesRow.length; j++) {
         var rnm = String(rentalNamesRow[j] || '').trim();
         var rprRaw = rentalPricesRow[j];

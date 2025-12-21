@@ -264,30 +264,25 @@ function getData() {
       });
     }
 
-    // One-off Add-on Products from Base Rates per Fruit Type (Q2:R2 names, Q3:R3 prices)
+    // One-off Add-on Products from Base Rates per Fruit Type - Column O (O2 name, O3 price)
     var oneOffAddOnProducts = [];
     try {
-      const oneOffNames = (baseRatesSheet.getRange('Q2:R2').getValues()[0] || []);
-      const oneOffPrices = (baseRatesSheet.getRange('Q3:R3').getValues()[0] || []);
-      const maxLen = Math.max(oneOffNames.length, oneOffPrices.length);
-      for (var i = 0; i < maxLen; i++) {
-        const nm = String(oneOffNames[i] || '').trim();
-        const prRaw = oneOffPrices[i];
-        const prSanitized = parseFloat(String(prRaw === undefined ? '' : prRaw).replace(/[^0-9.-]+/g, ''));
-        if (nm) {
-          const priceVal = (!isNaN(prSanitized) && isFinite(prSanitized)) ? prSanitized : 0;
-          oneOffAddOnProducts.push({ name: nm, price: priceVal });
-        }
+      const oneOffName = String(baseRatesSheet.getRange('O2').getValue() || '').trim();
+      const oneOffPriceRaw = baseRatesSheet.getRange('O3').getValue();
+      const oneOffPrice = parseFloat(String(oneOffPriceRaw === undefined ? '' : oneOffPriceRaw).replace(/[^0-9.-]+/g, ''));
+      if (oneOffName) {
+        const priceVal = (!isNaN(oneOffPrice) && isFinite(oneOffPrice)) ? oneOffPrice : 0;
+        oneOffAddOnProducts.push({ name: oneOffName, price: priceVal });
       }
     } catch (e) {
       Logger.log('One-off Add-on parsing error: ' + e);
       oneOffAddOnProducts = [];
     }
-    // Rental Add-on Products from Base Rates per Fruit Type (T2:U2 names, T3:U3 prices)
+    // Rental Add-on Products from Base Rates per Fruit Type - Columns Q and R (Q2:R2 names, Q3:R3 prices)
     var rentalAddOnProducts = [];
     try {
-      const rentalNames = (baseRatesSheet.getRange('T2:U2').getValues()[0] || []);
-      const rentalPrices = (baseRatesSheet.getRange('T3:U3').getValues()[0] || []);
+      const rentalNames = (baseRatesSheet.getRange('Q2:R2').getValues()[0] || []);
+      const rentalPrices = (baseRatesSheet.getRange('Q3:R3').getValues()[0] || []);
       const maxLenR = Math.max(rentalNames.length, rentalPrices.length);
       for (var j = 0; j < maxLenR; j++) {
         const rnm = String(rentalNames[j] || '').trim();
