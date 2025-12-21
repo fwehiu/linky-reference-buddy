@@ -395,26 +395,44 @@ function calculatePrice(formData) {
         grandTotalTonnage += prodTon;
         currentFruitTotalTonnage += prodTon;
 
-        let productIndex = productsList.indexOf(productName);
-        let productBaseCostNZD = 0;
-
-        if (productIndex !== -1) {
-          let rate = (ratesTable[fruitIndex]?.[productIndex] !== undefined) ? ratesTable[fruitIndex][productIndex] : null;
-          if (rate !== null && !isNaN(parseFloat(rate)) && isFinite(rate)) {
-            productBaseCostNZD = parseFloat(rate) * prodTon;
+        // Find product index with case-insensitive and trimmed matching
+        let productNameTrimmed = String(productName).trim().toLowerCase();
+        let productIndex = -1;
+        for (let pi = 0; pi < productsList.length; pi++) {
+          if (String(productsList[pi]).trim().toLowerCase() === productNameTrimmed) {
+            productIndex = pi;
+            break;
           }
+        }
+        
+        let ratesRow = ratesTable[fruitIndex] || [];
+        let productBaseCostNZD = 0;
+        let ratePerTonne = 0;
+
+        if (productIndex !== -1 && ratesRow.length > productIndex) {
+          let rate = ratesRow[productIndex];
+          if (rate !== null && rate !== undefined && rate !== '' && !isNaN(parseFloat(rate)) && isFinite(rate)) {
+            ratePerTonne = parseFloat(rate);
+            productBaseCostNZD = ratePerTonne * prodTon;
+          }
+          Logger.log(`Product "${productName}" found at index ${productIndex}, rate=${ratePerTonne}, tonnage=${prodTon}, calculated=${productBaseCostNZD}`);
+        } else {
+          Logger.log(`WARNING: Product "${productName}" NOT found. productIndex=${productIndex}, productsList=${JSON.stringify(productsList)}`);
         }
 
         // Enforce product minimum price rule (NZD): cost = max(baseRate*Tonnage, product minimum)
         const minNZDRaw = data.minimumPrices ? data.minimumPrices[productName] : null;
         const minNZD = (minNZDRaw !== undefined && minNZDRaw !== null && !isNaN(parseFloat(minNZDRaw))) ? parseFloat(minNZDRaw) : 0;
-        if (minNZD > 0) {
-          productBaseCostNZD = Math.max(productBaseCostNZD, minNZD);
+        let usedMinPrice = false;
+        if (minNZD > 0 && productBaseCostNZD < minNZD) {
+          Logger.log(`Applying min price: calculated=${productBaseCostNZD}, min=${minNZD}`);
+          productBaseCostNZD = minNZD;
+          usedMinPrice = true;
         }
 
         // --- APPLY CURRENCY CONVERSION TO BASE COST IMMEDIATELY ---
         let productBaseCostConverted = productBaseCostNZD * currencyRate;
-        Logger.log(`Product ${productName}: Base cost NZD=${productBaseCostNZD}, Converted=${productBaseCostConverted} ${currency}`);
+        Logger.log(`Product ${productName}: Rate/t=${ratePerTonne}, Tonnage=${prodTon}, Base NZD=${productBaseCostNZD}, Converted=${productBaseCostConverted} ${currency}, UsedMin=${usedMinPrice}`);
 
         productBaseCosts[fruitType][productName] = productBaseCostConverted;
         currentFruitBasePrice += productBaseCostConverted;
