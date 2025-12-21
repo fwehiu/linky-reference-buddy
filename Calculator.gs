@@ -337,6 +337,14 @@ function calculatePrice(formData) {
     var productsList = data.products || [];
     var ratesTable = data.rates || [];
     
+    Logger.log(`=== DATA STRUCTURE DEBUG ===`);
+    Logger.log(`Fruit types: ${JSON.stringify(fruitTypes)}`);
+    Logger.log(`Products list: ${JSON.stringify(productsList)}`);
+    Logger.log(`Rates table rows: ${ratesTable.length}, cols: ${ratesTable[0] ? ratesTable[0].length : 0}`);
+    if (ratesTable.length > 0) {
+      Logger.log(`First rate row (index 0): ${JSON.stringify(ratesTable[0])}`);
+    }
+    
     var regionDiscountDecimal = 0; 
     var regionIndex = data.regions.indexOf(region); 
     if (regionIndex !== -1) { 
