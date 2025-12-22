@@ -101,18 +101,28 @@ function getData() {
       throw new Error(`Required sheets not found.`);
     }
 
-    // Unified products from columns B to L (row 2 for headers)
-    var productsRaw = baseRatesSheet.getRange('B2:L2').getValues().flat();
-    // Unified fruit types from column A (starting at row 3)
+    // Products headers (keep original columns to preserve alignment with rates)
+    var productsHeadersRaw = baseRatesSheet.getRange('B2:L2').getValues().flat();
     var fruitTypesRaw = baseRatesSheet.getRange('A3:A' + baseRatesSheet.getLastRow()).getValues().flat();
 
-    const trimAndFilter = arr => arr.map(item => typeof item === 'string' ? item.trim() : item).filter(item => item !== null && item !== undefined && item !== '');
+    const trimAndFilter = arr => arr
+      .map(item => typeof item === 'string' ? item.trim() : item)
+      .filter(item => item !== null && item !== undefined && item !== '');
+
+    const normalizeKey = v => String(v || '').trim().toLowerCase();
 
     var fruitTypes = trimAndFilter(fruitTypesRaw);
-    var products = trimAndFilter(productsRaw);
+    var products = trimAndFilter(productsHeadersRaw);
 
-    // Rates from columns B to L (starting at row 3)
-    var rates = baseRatesSheet.getRange(3, 2, fruitTypes.length || 1, products.length || 1).getValues();
+    // Map product name -> column index within the rates row (0-based from column B)
+    var productColIndexByName = {};
+    productsHeadersRaw.forEach((p, idx) => {
+      const key = normalizeKey(p);
+      if (key) productColIndexByName[key] = idx;
+    });
+
+    // Rates: keep full header width so column indexes match the sheet
+    var rates = baseRatesSheet.getRange(3, 2, fruitTypes.length || 1, productsHeadersRaw.length || 1).getValues();
 
     var currencyData = discountsSheet.getRange('P3:Q' + discountsSheet.getLastRow()).getValues();
     var currencies = [];
@@ -296,7 +306,7 @@ function getData() {
     } catch (e) {
       Logger.log('Rental add-on read error: ' + e);
     }
-    return { fruitTypes: fruitTypes, products: products, rates: rates, currencies: currencies, currencyRates: currencyRates, regions: regions, regionDiscounts: regionDiscounts, paymentFrequencies: paymentFrequencies, tieredBulkDiscounts: tieredBulkDiscounts, addOns: addOns, cameraRentalPriceNZD: cameraRentalPriceNZD, inflationRateDecimal: inflationRateDecimal, minimumPrices: minimumPrices, oneOffAddOnProducts: oneOffAddOnProducts, rentalAddOnProducts: rentalAddOnProducts };
+    return { fruitTypes: fruitTypes, products: products, productColIndexByName: productColIndexByName, rates: rates, currencies: currencies, currencyRates: currencyRates, regions: regions, regionDiscounts: regionDiscounts, paymentFrequencies: paymentFrequencies, tieredBulkDiscounts: tieredBulkDiscounts, addOns: addOns, cameraRentalPriceNZD: cameraRentalPriceNZD, inflationRateDecimal: inflationRateDecimal, minimumPrices: minimumPrices, oneOffAddOnProducts: oneOffAddOnProducts, rentalAddOnProducts: rentalAddOnProducts };
   } catch (e) { 
     Logger.log(`GetData Error: ${e}\n${e.stack}`); 
     return { error: `Data fetch failed: ${e.message}` }; 
@@ -328,11 +338,11 @@ function calculatePrice(formData) {
     var companyAddress = formData.companyAddress || "";
     var salesContact = formData.salesContact || ""; 
     
-    // Unified data - no more grower/packer split
-    var fruitTypes = data.fruitTypes; 
-    var productsList = data.products; 
-    var ratesTable = data.rates; 
-    
+     // Unified data - no more grower/packer split
+     var fruitTypes = data.fruitTypes; 
+     var productsList = data.products; 
+     var ratesTable = data.rates; 
+     var productColIndexByName = data.productColIndexByName || {};
     Logger.log(`=== DATA STRUCTURE DEBUG ===`);
     Logger.log(`Fruit types: ${JSON.stringify(fruitTypes)}`);
     Logger.log(`Products list: ${JSON.stringify(productsList)}`);
@@ -403,30 +413,38 @@ function calculatePrice(formData) {
         grandTotalTonnage += prodTon;
         currentFruitTotalTonnage += prodTon;
 
-        // Find product index with case-insensitive and trimmed matching
-        let productNameTrimmed = String(productName).trim().toLowerCase();
-        let productIndex = -1;
-        for (let pi = 0; pi < productsList.length; pi++) {
-          if (String(productsList[pi]).trim().toLowerCase() === productNameTrimmed) {
-            productIndex = pi;
-            break;
-          }
-        }
-        
-        let ratesRow = ratesTable[fruitIndex] || [];
-        let productBaseCostNZD = 0;
-        let ratePerTonne = 0;
+         const normalizeKey = v => String(v || '').trim().toLowerCase();
+         const productKey = normalizeKey(productName);
 
-        if (productIndex !== -1 && ratesRow.length > productIndex) {
-          let rate = ratesRow[productIndex];
-          if (rate !== null && rate !== undefined && rate !== '' && !isNaN(parseFloat(rate)) && isFinite(rate)) {
-            ratePerTonne = parseFloat(rate);
-            productBaseCostNZD = ratePerTonne * prodTon;
-          }
-          Logger.log(`Product "${productName}" found at index ${productIndex}, rate=${ratePerTonne}, tonnage=${prodTon}, calculated=${productBaseCostNZD}`);
-        } else {
-          Logger.log(`WARNING: Product "${productName}" NOT found. productIndex=${productIndex}, productsList=${JSON.stringify(productsList)}`);
-        }
+         // Prefer column mapping derived from the sheet headers (handles blank columns)
+         let productColIndex = Object.prototype.hasOwnProperty.call(productColIndexByName, productKey)
+           ? productColIndexByName[productKey]
+           : -1;
+
+         // Fallback (legacy): match against compact productsList
+         if (productColIndex === -1) {
+           for (let pi = 0; pi < productsList.length; pi++) {
+             if (normalizeKey(productsList[pi]) === productKey) {
+               productColIndex = pi;
+               break;
+             }
+           }
+         }
+         
+         let ratesRow = ratesTable[fruitIndex] || [];
+         let productBaseCostNZD = 0;
+         let ratePerTonne = 0;
+
+         if (productColIndex !== -1 && ratesRow.length > productColIndex) {
+           let rate = ratesRow[productColIndex];
+           if (rate !== null && rate !== undefined && rate !== '' && !isNaN(parseFloat(rate)) && isFinite(rate)) {
+             ratePerTonne = parseFloat(rate);
+             productBaseCostNZD = ratePerTonne * prodTon;
+           }
+           Logger.log(`Product "${productName}" found at colIndex ${productColIndex}, rate=${ratePerTonne}, tonnage=${prodTon}, calculated=${productBaseCostNZD}`);
+         } else {
+           Logger.log(`WARNING: Product "${productName}" NOT found. colIndex=${productColIndex}, productKey=${productKey}`);
+         }
 
         // Enforce product minimum price rule (NZD): cost = max(baseRate*Tonnage, product minimum)
         const minNZDRaw = data.minimumPrices ? data.minimumPrices[productName] : null;
